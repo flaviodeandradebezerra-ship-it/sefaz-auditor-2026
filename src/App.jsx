@@ -368,12 +368,6 @@ function FeedbackQuestao({q, resposta, onProxima, isUltima, onFinalizar}) {
           ? <button onClick={onFinalizar} style={{background:C.green,color:"#fff",border:"none",borderRadius:8,padding:"11px 26px",cursor:"pointer",fontWeight:700,fontSize:14}}>Ver Resultado Final →</button>
           : <button onClick={onProxima} style={{background:C.gold,color:"#000",border:"none",borderRadius:8,padding:"11px 26px",cursor:"pointer",fontWeight:700,fontSize:14}}>Próxima Questão →</button>
         }
-        {/* ── TAB 6: RESUMOS & FLASHCARDS ── */}
-        {tab===6&&(
-          <div>
-            <ErrorBoundary><FlashcardsApp /></ErrorBoundary>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1227,6 +1221,13 @@ export default function App() {
               <p style={{margin:0,fontSize:13,color:C.goldLight,fontStyle:"italic",lineHeight:1.8}}>"Aprovação em concurso fiscal de alto nível não é questão de talento — é questão de método, consistência e profundidade de domínio. Estude a lei, resolva questões, escreva e revise. Todos os dias."</p>
               <p style={{margin:"8px 0 0",fontSize:11,color:C.muted}}>Edital SEFAZ/CE nº 01/2026 • Banca FCC • Provas: 01-02/08/2026</p>
             </div>
+          </div>
+        )}
+
+        {/* TAB 6 – RESUMOS & FLASHCARDS */}
+        {tab===6&&(
+          <div>
+            <ErrorBoundary><FlashcardsApp /></ErrorBoundary>
           </div>
         )}
 
