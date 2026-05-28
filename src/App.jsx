@@ -348,8 +348,8 @@ function FeedbackQuestao({q, resposta, onProxima, isUltima, onFinalizar}) {
           ? <button onClick={onFinalizar} style={{background:C.green,color:"#fff",border:"none",borderRadius:8,padding:"11px 26px",cursor:"pointer",fontWeight:700,fontSize:14}}>Ver Resultado Final →</button>
           : <button onClick={onProxima} style={{background:C.gold,color:"#000",border:"none",borderRadius:8,padding:"11px 26px",cursor:"pointer",fontWeight:700,fontSize:14}}>Próxima Questão →</button>
         }
-        {/* ── TAB 7: RESUMOS & FLASHCARDS ── */}
-        {tab===7&&(
+        {/* ── TAB 6: RESUMOS & FLASHCARDS ── */}
+        {tab===6&&(
           <div>
             <FlashcardsApp />
           </div>
@@ -1133,7 +1133,7 @@ export default function App() {
               );
             })}
             <div style={{textAlign:"center",marginTop:14}}>
-              <button onClick={()=>setTab(6)} style={{background:C.gold+"22",border:`1px solid ${C.gold}`,color:C.gold,borderRadius:8,padding:"9px 20px",cursor:"pointer",fontWeight:700,fontSize:13}}>Ver todas as 30 questões →</button>
+              <button onClick={()=>setTab(7)} style={{background:C.gold+"22",border:`1px solid ${C.gold}`,color:C.gold,borderRadius:8,padding:"9px 20px",cursor:"pointer",fontWeight:700,fontSize:13}}>Ver todas as 30 questões →</button>
             </div>
           </div>
         )}
@@ -1210,8 +1210,8 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 6 – BANCO COMPLETO */}
-        {tab===6&&(
+        {/* TAB 7 – BANCO COMPLETO */}
+        {tab===7&&(
           <div>
             <h2 style={{color:C.gold,margin:"0 0 5px",fontSize:17}}>📚 Banco Completo – 30 Questões Estilo FCC</h2>
             <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
