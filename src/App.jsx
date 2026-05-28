@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import FlashcardsApp from "./FlashcardsApp.jsx"; // SEFAZ_DISCIPLINAS_V3_COMPLETO_2026
 
 // ═══════════════════════════════════════════════════════
 //  SEFAZ/CE 2026 — PLATAFORMA COMPLETA DE ESTUDOS
@@ -268,7 +269,7 @@ const SUGESTOES = {
 function Bdg({children,cor=C.gold,bg}){return <span style={{background:bg||cor+"22",border:`1px solid ${cor}`,borderRadius:4,padding:"2px 8px",fontSize:11,color:cor,fontWeight:700,whiteSpace:"nowrap"}}>{children}</span>;}
 function fmt(s){const m=Math.floor(s/60),sec=s%60;return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;}
 
-const TABS_GUIA=["Visão Geral","Disciplinas","Cronograma","Banco de Questões","Discursivas","Estratégia FCC"];
+const TABS_GUIA=["Visão Geral","Disciplinas","Cronograma","Banco de Questões","Discursivas","Estratégia FCC","📚 Resumos & Flashcards"];
 
 // ─── COMPONENTE DE FEEDBACK IMEDIATO ─────────────────
 function FeedbackQuestao({q, resposta, onProxima, isUltima, onFinalizar}) {
@@ -347,6 +348,12 @@ function FeedbackQuestao({q, resposta, onProxima, isUltima, onFinalizar}) {
           ? <button onClick={onFinalizar} style={{background:C.green,color:"#fff",border:"none",borderRadius:8,padding:"11px 26px",cursor:"pointer",fontWeight:700,fontSize:14}}>Ver Resultado Final →</button>
           : <button onClick={onProxima} style={{background:C.gold,color:"#000",border:"none",borderRadius:8,padding:"11px 26px",cursor:"pointer",fontWeight:700,fontSize:14}}>Próxima Questão →</button>
         }
+        {/* ── TAB 7: RESUMOS & FLASHCARDS ── */}
+        {tab===7&&(
+          <div>
+            <FlashcardsApp />
+          </div>
+        )}
       </div>
     </div>
   );
