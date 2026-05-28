@@ -11,4 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm install -g vercel@latest
-      - run: vercel deploy . --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy and show URL
+        run: |
+          OUTPUT=$(vercel deploy . --prod --yes --token ${{ secrets.VERCEL_TOKEN }} 2>&1)
+          echo "$OUTPUT"
+          URL=$(echo "$OUTPUT" | grep -oE 'https://[a-zA-Z0-9._-]+\.vercel\.app' | tail -1)
+          echo "::notice title=URL Pública::$URL"
+          echo "VERCEL_URL=$URL" >> $GITHUB_ENV
+      - run: echo "✅ Deploy concluído em $VERCEL_URL"
