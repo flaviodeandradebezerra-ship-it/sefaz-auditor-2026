@@ -1,5 +1,25 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Component } from "react";
 import FlashcardsApp from "./FlashcardsApp.jsx"; // SEFAZ_DISCIPLINAS_V3_COMPLETO_2026
+
+class ErrorBoundary extends Component {
+  constructor(props){ super(props); this.state={erro:null}; }
+  static getDerivedStateFromError(error){ return {erro:error}; }
+  componentDidCatch(error, info){ console.error("FlashcardsApp erro:", error, info); }
+  render(){
+    if(this.state.erro){
+      return (
+        <div style={{padding:20,maxWidth:680,margin:"0 auto"}}>
+          <div style={{background:"#1a0808",border:"2px solid #ef4444",borderRadius:10,padding:20}}>
+            <h3 style={{color:"#ef4444",margin:"0 0 10px"}}>Erro ao carregar Resumos & Flashcards</h3>
+            <pre style={{color:"#fca5a5",fontSize:11,whiteSpace:"pre-wrap",wordBreak:"break-word",margin:0}}>{String(this.state.erro && this.state.erro.message || this.state.erro)}</pre>
+            <pre style={{color:"#94a3b8",fontSize:10,whiteSpace:"pre-wrap",wordBreak:"break-word",marginTop:10}}>{String(this.state.erro && this.state.erro.stack || "").slice(0,500)}</pre>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 //  SEFAZ/CE 2026 — PLATAFORMA COMPLETA DE ESTUDOS
@@ -351,7 +371,7 @@ function FeedbackQuestao({q, resposta, onProxima, isUltima, onFinalizar}) {
         {/* ── TAB 6: RESUMOS & FLASHCARDS ── */}
         {tab===6&&(
           <div>
-            <FlashcardsApp />
+            <ErrorBoundary><FlashcardsApp /></ErrorBoundary>
           </div>
         )}
       </div>
