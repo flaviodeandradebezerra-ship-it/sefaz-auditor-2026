@@ -458,12 +458,31 @@ function DiscView({d, onBack}){
 }
 
 // ── HOME ──────────────────────────────────────────────
+const PESO_PROVA = {"Lingua Portuguesa":10,"Matematica Financeira, Estatistica e Logica":12,"Administracao Publica e Governanca":10,"Economia":10,"Direito Constitucional":4,"Direito Administrativo":4,"Direito Civil e Penal":4,"Direito Financeiro":8,"Contabilidade Geral e Publica":10,"Contabilidade Avancada e de Custos":20,"Direito Tributario":20,"Legislacao Tributaria Estadual do Ceara":20,"Fluencia de Dados":10,"Financas Publicas":10};
+function embaralhar(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+
 export default function FlashcardsApp(){
   const [d,setD]=useState(null);
+  const [simGeral,setSimGeral]=useState(false);
   if(d) return <DiscView d={d} onBack={()=>setD(null)}/>;
+  if(simGeral){
+    // monta pool proporcional ao peso real da prova FCC
+    let pool=[];
+    DISC.forEach(disc=>{
+      let dq=[];
+      disc.tps.forEach(t=>{const qk=QK[t.id]||""; if(qk&&Q[qk]) dq=dq.concat(Q[qk]);});
+      const n=PESO_PROVA[disc.n]||4;
+      pool=pool.concat(embaralhar(dq).slice(0,Math.min(n,dq.length)));
+    });
+    pool=embaralhar(pool);
+    return <Quiz tp={{id:"SIM-GERAL",t:"Simulado Geral (peso real da prova)"}} qs={pool} onBack={()=>setSimGeral(false)} titulo="🏆 Simulado Geral Multidisciplinar"/>;
+  }
+  // total de questoes do simulado geral (soma dos pesos, limitado ao disponivel)
+  let totalGeral=0;
+  DISC.forEach(disc=>{let dq=0;disc.tps.forEach(t=>{const qk=QK[t.id]||"";if(qk&&Q[qk])dq+=Q[qk].length;});totalGeral+=Math.min(PESO_PROVA[disc.n]||4,dq);});
   return(
     <div>
-      <div style={{background:C.card,border:`1px solid ${C.gold}44`,borderRadius:10,padding:"14px 16px",marginBottom:18}}>
+      <div style={{background:C.card,border:`1px solid ${C.gold}44`,borderRadius:10,padding:"14px 16px",marginBottom:14}}>
         <h2 style={{color:C.gold,margin:"0 0 6px",fontSize:16}}>📚 Resumos e Flashcards — SEFAZ/CE 2026</h2>
         <p style={{color:C.muted,fontSize:12,lineHeight:1.7,margin:"0 0 10px"}}>
           Cobertura completa do Edital no 01/2026 (Anexo VI). 14 disciplinas com resumos didaticos, flashcards interativos e questoes FCC comentadas.
@@ -473,6 +492,14 @@ export default function FlashcardsApp(){
             <span key={l} style={{background:c+"22",border:`1px solid ${c}`,color:c,borderRadius:4,padding:"3px 10px",fontSize:11,fontWeight:700}}>{l}</span>
           ))}
         </div>
+      </div>
+      {/* SIMULADO GERAL MULTIDISCIPLINAR */}
+      <div onClick={()=>setSimGeral(true)} style={{cursor:"pointer",background:"linear-gradient(135deg,#c8a95122,#ef444422)",border:`1px solid ${C.gold}`,borderRadius:10,padding:"15px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontWeight:700,color:C.goldL,fontSize:15,marginBottom:3}}>🏆 Simulado Geral Multidisciplinar</div>
+          <div style={{fontSize:12,color:C.muted,lineHeight:1.5}}>Junta TODAS as disciplinas no peso real da prova FCC ({totalGeral} questoes), embaralhadas, cronometrado e com gabarito comentado</div>
+        </div>
+        <span style={{background:C.gold,color:"#000",borderRadius:6,padding:"10px 18px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Iniciar →</span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:10}}>
         {DISC.map((disc,i)=>(

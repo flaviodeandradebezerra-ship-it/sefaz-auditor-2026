@@ -157,13 +157,83 @@ export default function Desempenho({ onClose }) {
     }}>{children}</button>
   );
 
+  const exportarRelatorio = () => {
+    const erradas = carregar("sefaz_erradas_v1", {});
+    const horasTotal = (totalMin / 60).toFixed(1);
+    const L = [];
+    L.push("====================================================");
+    L.push("  RELATORIO DE DESEMPENHO - SEFAZ/CE 2026");
+    L.push("  Auditor-Fiscal | Banca FCC");
+    L.push("  Gerado em: " + new Date().toLocaleString("pt-BR"));
+    L.push("====================================================");
+    L.push("");
+    L.push("1) COBERTURA DO EDITAL");
+    L.push("   " + pctDominado + "% dominado / " + pctIniciado + "% iniciado");
+    L.push("");
+    ESTRUTURA.forEach(function(par){
+      const disc = par[0], tps = par[1];
+      const keys = tps.map(function(t){ return disc + " | " + t; });
+      const dom = keys.filter(function(k){ return (dados[k]||{}).status === 3; }).length;
+      L.push("   " + disc + "  (" + dom + " de " + tps.length + " dominados)");
+      tps.forEach(function(t){
+        const dd = dados[disc + " | " + t] || { status:0, conf:0 };
+        const st = STATUS[dd.status||0].n;
+        const conf = dd.conf || 0;
+        L.push("      - " + t + " :: " + st + " | confianca " + conf + "/3");
+      });
+      L.push("");
+    });
+    L.push("2) DIARIO DE ESTUDOS");
+    L.push("   Total acumulado: " + horasTotal + "h");
+    L.push("   Sequencia atual (streak): " + streak + " dia(s)");
+    L.push("   Estudo hoje: " + minHoje + " min");
+    L.push("");
+    L.push("   Horas por disciplina:");
+    const pares = Object.entries(porDisc).sort(function(a,b){ return b[1]-a[1]; });
+    if (pares.length === 0) {
+      L.push("      (sem sessoes registradas)");
+    } else {
+      pares.forEach(function(p){ L.push("      - " + p[0] + ": " + (p[1]/60).toFixed(1) + "h"); });
+    }
+    L.push("");
+    L.push("3) QUESTOES ERRADAS (para revisao)");
+    const ek = Object.keys(erradas).filter(function(k){ return (erradas[k]||[]).length > 0; });
+    if (ek.length === 0) {
+      L.push("   Nenhuma questao errada registrada. Bom trabalho!");
+    } else {
+      let tot = 0;
+      ek.forEach(function(k){ const n = erradas[k].length; tot += n; L.push("      - " + k + ": " + n + " questao(oes) a revisar"); });
+      L.push("   TOTAL a revisar: " + tot);
+    }
+    L.push("");
+    L.push("====================================================");
+    L.push("  Plataforma de Estudos SEFAZ/CE 2026");
+    L.push("====================================================");
+    const texto = L.join("\n");
+    try {
+      const blob = new Blob([texto], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "relatorio-desempenho-sefaz-ce-" + hoje() + ".txt";
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch (err) {
+      try { navigator.clipboard.writeText(texto); alert("Relatorio copiado para a area de transferencia."); }
+      catch (err2) { alert("Nao foi possivel exportar o relatorio neste dispositivo."); }
+    }
+  };
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:1000,overflowY:"auto",padding:"20px 12px"}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{maxWidth:700,margin:"0 auto",background:C.bg,border:`1px solid ${C.gold}44`,borderRadius:14,padding:"20px 18px"}}>
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <h2 style={{color:C.gold,margin:0,fontSize:17}}>📊 Desempenho</h2>
-          <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:6,width:32,height:32,cursor:"pointer",fontSize:16}}>✕</button>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={exportarRelatorio} title="Exportar relatorio" style={{background:C.gold+"18",border:`1px solid ${C.gold}`,color:C.gold,borderRadius:6,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>Exportar relatorio</button>
+            <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:6,width:32,height:32,cursor:"pointer",fontSize:16}}>✕</button>
+          </div>
         </div>
 
         <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:14,borderBottom:`1px solid ${C.border}`}}>
