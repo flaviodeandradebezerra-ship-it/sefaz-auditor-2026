@@ -4,6 +4,7 @@ import ConfigConcursos from "./ConfigConcursos.jsx";
 import MeusEditais from "./MeusEditais.jsx";
 import Anotacoes from "./Anotacoes.jsx";
 import MetodoBanca from "./MetodoBanca.jsx";
+import Desempenho from "./Desempenho.jsx";
 
 class ErrorBoundary extends Component {
   constructor(props){ super(props); this.state={erro:null}; }
@@ -576,6 +577,7 @@ export default function App() {
   const [showEditais, setShowEditais] = useState(false);
   const [showNotas, setShowNotas] = useState(false);
   const [showMetodo, setShowMetodo] = useState(false);
+  const [showDesempenho, setShowDesempenho] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -636,6 +638,7 @@ export default function App() {
           <button onClick={()=>setShowEditais(true)} title="Meus Editais" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📑 Meus Editais</button>
           <button onClick={()=>setShowNotas(true)} title="Anotacoes" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📝 Anotacoes</button>
           <button onClick={()=>setShowMetodo(true)} title="Metodo por Banca" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>🎓 Metodo</button>
+          <button onClick={()=>setShowDesempenho(true)} title="Painel de Desempenho" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📊 Desempenho</button>
           <button onClick={()=>setShowConfig(true)} title="Configurar busca de concursos" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:15,fontWeight:700}}>⚙️</button>
         </div>
       </div>
@@ -643,6 +646,7 @@ export default function App() {
       {showEditais && <MeusEditais onClose={()=>setShowEditais(false)} />}
       {showNotas && <Anotacoes onClose={()=>setShowNotas(false)} />}
       {showMetodo && <MetodoBanca onClose={()=>setShowMetodo(false)} />}
+      {showDesempenho && <Desempenho onClose={()=>setShowDesempenho(false)} />}
     </div>
   );
 

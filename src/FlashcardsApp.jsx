@@ -70,7 +70,11 @@ const DISC = [
 const fmtT = s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 
 // ── QUIZ ──────────────────────────────────────────────
-function Quiz({tp, qs, onBack}){
+const K_ERRADAS="sefaz_erradas_v1";
+function carregarErradas(){try{const r=localStorage.getItem(K_ERRADAS);return r?JSON.parse(r):{};}catch(e){return {};}}
+function salvarErradas(o){try{localStorage.setItem(K_ERRADAS,JSON.stringify(o));}catch(e){}}
+
+function Quiz({tp, qs, onBack, banca}){
   const [lim,setLim]=useState(null);
   const [idx,setIdx]=useState(0);
   const [sel,setSel]=useState(null);
@@ -80,6 +84,7 @@ function Quiz({tp, qs, onBack}){
   const [t,setT]=useState(0);
   const [fim,setFim]=useState(false);
   const ref=useRef(null);
+  const penalidade = banca==="cebraspe";
 
   useEffect(()=>{
     if(lim&&!fim){ ref.current=setInterval(()=>setT(x=>x+1),1000); }
@@ -115,6 +120,7 @@ function Quiz({tp, qs, onBack}){
             ))}
           </div>
           <p style={{color:C.muted,fontSize:11}}>Com cronometro, gabarito comentado e contador de acertos/erros</p>
+          {penalidade&&<p style={{color:C.orange,fontSize:11,marginTop:8}}>⚠️ Modo Cebraspe ativo: cada erro anula um acerto</p>}
         </div>
       </div>
     );
@@ -125,7 +131,18 @@ function Quiz({tp, qs, onBack}){
 
   const confirmar=()=>{
     if(!sel) return;
-    if(sel===q.g) setAc(a=>a+1); else setEr(e=>e+1);
+    const erradas=carregarErradas();
+    const chave=tp.id||tp.t;
+    if(sel===q.g){
+      setAc(a=>a+1);
+      // remove da lista de erradas se acertou agora
+      if(erradas[chave]){ erradas[chave]=erradas[chave].filter(i=>i!==idx); salvarErradas(erradas); }
+    } else {
+      setEr(e=>e+1);
+      // registra questao errada (por indice no banco do topico)
+      if(!erradas[chave]) erradas[chave]=[];
+      if(!erradas[chave].includes(idx)){ erradas[chave].push(idx); salvarErradas(erradas); }
+    }
     setShow(true);
   };
 
@@ -135,13 +152,15 @@ function Quiz({tp, qs, onBack}){
   };
 
   if(fim){
-    const pct=Math.round((ac/sel_qs.length)*100);
+    const liquido = penalidade ? Math.max(0, ac - er) : ac;
+    const pct=Math.round((liquido/sel_qs.length)*100);
     return(
       <div style={{maxWidth:680,margin:"0 auto"}}>
         <div style={{background:C.card,border:`2px solid ${pct>=60?C.green:C.red}`,borderRadius:14,padding:28,textAlign:"center",marginBottom:16}}>
           <div style={{fontSize:52,marginBottom:8}}>{pct>=70?"🏆":pct>=50?"📚":"💪"}</div>
           <h2 style={{color:pct>=60?C.green:C.red,margin:"0 0 4px"}}>{pct>=70?"Excelente!":pct>=50?"Bom progresso!":"Continue estudando!"}</h2>
-          <p style={{color:C.muted,marginBottom:20,fontSize:13}}>{tp.t}</p>
+          <p style={{color:C.muted,marginBottom:8,fontSize:13}}>{tp.t}</p>
+          {penalidade&&<p style={{color:C.orange,fontSize:12,marginBottom:16}}>⚠️ Modo Cebraspe: cada erro anulou um acerto (liquido: {ac}-{er}={liquido})</p>}
           <div style={{display:"flex",justifyContent:"center",gap:14,flexWrap:"wrap",marginBottom:20}}>
             {[["✅ Acertos",ac,C.green],["❌ Erros",er,C.red],["⏱ Tempo",fmtT(t),C.blue],["📊 Aproveit.",pct+"%",pct>=60?C.gold:C.red]].map(([l,v,col])=>(
               <div key={l} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 18px",textAlign:"center",minWidth:80}}>
