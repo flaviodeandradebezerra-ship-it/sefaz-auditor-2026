@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, Component } from "react";
 import FlashcardsApp from "./FlashcardsApp.jsx"; // SEFAZ_DISCIPLINAS_V3_COMPLETO_2026
+import { Q as Q_BANCO } from "./fcData.js";
+const TOTAL_Q = Object.values(Q_BANCO).reduce((s,arr)=>s+(arr?arr.length:0),0);
 import ConfigConcursos from "./ConfigConcursos.jsx";
 import MeusEditais from "./MeusEditais.jsx";
 import Anotacoes from "./Anotacoes.jsx";
@@ -294,7 +296,7 @@ const SUGESTOES = {
 function Bdg({children,cor=C.gold,bg}){return <span style={{background:bg||cor+"22",border:`1px solid ${cor}`,borderRadius:4,padding:"2px 8px",fontSize:11,color:cor,fontWeight:700,whiteSpace:"nowrap"}}>{children}</span>;}
 function fmt(s){const m=Math.floor(s/60),sec=s%60;return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;}
 
-const TABS_GUIA=["Visão Geral","Disciplinas","Cronograma","Banco de Questões","Discursivas","Estratégia FCC","📚 Resumos & Flashcards"];
+const TABS_GUIA=["Visão Geral","Disciplinas","Cronograma","Banco de Questões","Discursivas","Estratégia FCC","🎯 Simulados por Disciplina"];
 
 // ─── COMPONENTE DE FEEDBACK IMEDIATO ─────────────────
 function FeedbackQuestao({q, resposta, onProxima, isUltima, onFinalizar}) {
@@ -627,7 +629,7 @@ export default function App() {
           <div style={{display:"flex",gap:6,marginBottom:4,flexWrap:"wrap"}}>
             <Bdg cor={C.gold}>SEFAZ/CE 2026</Bdg>
             <Bdg cor="#3b82f6">FCC</Bdg>
-            <Bdg cor="#22c55e">30 Questões</Bdg>
+            <Bdg cor="#22c55e">{TOTAL_Q}+ Questões</Bdg>
             <Bdg cor="#a855f7">Simulado Interativo</Bdg>
           </div>
           <h1 style={{margin:0,fontSize:16,color:C.goldLight,fontFamily:"Georgia,serif"}}>Plataforma Completa – Auditor-Fiscal SEFAZ/CE</h1>
@@ -781,6 +783,13 @@ export default function App() {
         {/* TAB 0 – VISÃO GERAL */}
         {tab===0&&(
           <div>
+            <div onClick={()=>setTab(6)} style={{cursor:"pointer",background:"linear-gradient(135deg,#a855f722,#3b82f622)",border:`1px solid #a855f7`,borderRadius:10,padding:"14px 16px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+              <div>
+                <div style={{fontWeight:700,color:"#c084fc",fontSize:14,marginBottom:2}}>🎯 Simulado por Disciplina (formato prova)</div>
+                <div style={{fontSize:12,color:C.muted}}>Cronometrado, com gabarito comentado — {TOTAL_Q}+ questões estilo FCC</div>
+              </div>
+              <span style={{background:"#a855f7",color:"#fff",borderRadius:6,padding:"9px 16px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Começar →</span>
+            </div>
             <h2 style={{color:C.gold,margin:"0 0 16px",fontSize:17}}>📋 Panorama do Concurso</h2>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:10,marginBottom:22}}>
               {Object.entries(guia.concurso).map(([k,v])=>{
@@ -810,6 +819,14 @@ export default function App() {
         {/* ── TAB 1: DISCIPLINAS ── */}
         {tab===1&&(
           <div>
+            {/* CTA SIMULADO POR DISCIPLINA */}
+            <div onClick={()=>setTab(6)} style={{cursor:"pointer",background:"linear-gradient(135deg,#a855f722,#3b82f622)",border:`1px solid #a855f7`,borderRadius:10,padding:"14px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+              <div>
+                <div style={{fontWeight:700,color:"#c084fc",fontSize:14,marginBottom:2}}>🎯 Simulado por Disciplina (formato prova)</div>
+                <div style={{fontSize:12,color:C.muted}}>Junta questões de todos os tópicos de cada disciplina, cronometrado e com gabarito comentado — {TOTAL_Q}+ questões no banco</div>
+              </div>
+              <span style={{background:"#a855f7",color:"#fff",borderRadius:6,padding:"9px 16px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Fazer simulado →</span>
+            </div>
             {/* Legenda */}
             <div style={{display:"flex",gap:10,marginBottom:18,padding:"12px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,flexWrap:"wrap",alignItems:"center"}}>
               <span style={{fontSize:12,color:C.muted,fontWeight:600}}>LEGENDA:</span>
