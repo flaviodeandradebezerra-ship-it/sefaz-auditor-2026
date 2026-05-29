@@ -85,6 +85,10 @@ const BANCAS = [
   {id:"fgv", n:"FGV", cor:"#059669", url:q=>`https://conhecimento.fgv.br/concursos/inscricoes-abertas`},
   {id:"vunesp", n:"Vunesp", cor:"#7c3aed", url:q=>`https://www.vunesp.com.br/`},
   {id:"idecan", n:"IDECAN", cor:"#ea580c", url:q=>`https://www.idecan.org.br/concursos`},
+  {id:"grancursos", n:"Gran Cursos", cor:"#0ea5e9", url:q=>`https://www.grancursosonline.com.br/busca?q=${encodeURIComponent(q)}`},
+  {id:"tec", n:"TEC Concursos", cor:"#16a34a", url:q=>`https://www.tecconcursos.com.br/s/${encodeURIComponent(q)}`},
+  {id:"qconcursos", n:"QConcursos", cor:"#2563eb", url:q=>`https://www.qconcursos.com/busca?utf8=%E2%9C%93&q=${encodeURIComponent(q)}`},
+  {id:"estrategia", n:"Estrategia Concursos", cor:"#e11d48", url:q=>`https://www.estrategiaconcursos.com.br/?s=${encodeURIComponent(q)}`},
   {id:"google", n:"Google", cor:"#0891b2", url:q=>`https://www.google.com/search?q=${encodeURIComponent(q)}`},
   {id:"pci", n:"PCI Concursos", cor:"#0d9488", url:q=>`https://www.pciconcursos.com.br/concursos/${encodeURIComponent(q)}`},
 ];
@@ -229,7 +233,7 @@ export default function ConfigConcursos({ onClose }) {
             ))}
           </div>
           <p style={{fontSize:10,color:C.muted,margin:"10px 0 0",lineHeight:1.5}}>
-            Cebraspe, FCC, FGV, Vunesp e IDECAN abrem a pagina oficial de concursos da banca. Google e PCI Concursos aplicam seus filtros diretamente na busca.
+            Cebraspe, FCC, FGV, Vunesp e IDECAN abrem a pagina oficial da banca. Gran Cursos, TEC Concursos, QConcursos, Estrategia Concursos, Google e PCI Concursos aplicam seus filtros diretamente na busca.
           </p>
         </div>
 
