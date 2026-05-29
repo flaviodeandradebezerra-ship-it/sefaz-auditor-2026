@@ -3,6 +3,7 @@ import FlashcardsApp from "./FlashcardsApp.jsx"; // SEFAZ_DISCIPLINAS_V3_COMPLET
 import ConfigConcursos from "./ConfigConcursos.jsx";
 import MeusEditais from "./MeusEditais.jsx";
 import Anotacoes from "./Anotacoes.jsx";
+import MetodoBanca from "./MetodoBanca.jsx";
 
 class ErrorBoundary extends Component {
   constructor(props){ super(props); this.state={erro:null}; }
@@ -574,6 +575,7 @@ export default function App() {
   const [showConfig, setShowConfig] = useState(false);
   const [showEditais, setShowEditais] = useState(false);
   const [showNotas, setShowNotas] = useState(false);
+  const [showMetodo, setShowMetodo] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -633,12 +635,14 @@ export default function App() {
           <button onClick={iniciarSim} style={{padding:"8px 14px",borderRadius:6,border:`1px solid ${modo==="simulado"?C.gold:C.border}`,background:modo==="simulado"?C.gold+"22":"transparent",color:modo==="simulado"?C.gold:C.muted,cursor:"pointer",fontSize:12,fontWeight:700}}>🎯 Simulado</button>
           <button onClick={()=>setShowEditais(true)} title="Meus Editais" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📑 Meus Editais</button>
           <button onClick={()=>setShowNotas(true)} title="Anotacoes" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📝 Anotacoes</button>
+          <button onClick={()=>setShowMetodo(true)} title="Metodo por Banca" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>🎓 Metodo</button>
           <button onClick={()=>setShowConfig(true)} title="Configurar busca de concursos" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:15,fontWeight:700}}>⚙️</button>
         </div>
       </div>
       {showConfig && <ConfigConcursos onClose={()=>setShowConfig(false)} />}
       {showEditais && <MeusEditais onClose={()=>setShowEditais(false)} />}
       {showNotas && <Anotacoes onClose={()=>setShowNotas(false)} />}
+      {showMetodo && <MetodoBanca onClose={()=>setShowMetodo(false)} />}
     </div>
   );
 
