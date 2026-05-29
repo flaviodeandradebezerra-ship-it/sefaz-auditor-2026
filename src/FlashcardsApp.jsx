@@ -70,9 +70,22 @@ const DISC = [
 const fmtT = s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 
 // ── QUIZ ──────────────────────────────────────────────
-const K_ERRADAS="sefaz_erradas_v1";
+const K_ERRADAS="sefaz_erradas_v2";
 function carregarErradas(){try{const r=localStorage.getItem(K_ERRADAS);return r?JSON.parse(r):{};}catch(e){return {};}}
 function salvarErradas(o){try{localStorage.setItem(K_ERRADAS,JSON.stringify(o));}catch(e){}}
+// historico de simulados (evolucao)
+const K_HIST="sefaz_simulados_v1";
+function carregarHist(){try{const r=localStorage.getItem(K_HIST);return r?JSON.parse(r):[];}catch(e){return [];}}
+function salvarHist(a){try{localStorage.setItem(K_HIST,JSON.stringify(a));}catch(e){}}
+// assinatura estavel da questao (independe de posicao/embaralhamento)
+function sigQ(q){return (q&&q.q?q.q:"").slice(0,120);}
+// reconstroi a lista de questoes erradas varrendo todo o banco Q
+function questoesErradas(){
+  const er=carregarErradas();
+  const out=[];
+  Object.keys(Q).forEach(k=>{(Q[k]||[]).forEach(q=>{ if(er[sigQ(q)]) out.push(q); });});
+  return out;
+}
 
 function Quiz({tp, qs, onBack, banca}){
   const [lim,setLim]=useState(null);
@@ -85,11 +98,25 @@ function Quiz({tp, qs, onBack, banca}){
   const [fim,setFim]=useState(false);
   const ref=useRef(null);
   const penalidade = banca==="cebraspe";
+  const salvouHist=useRef(false);
 
   useEffect(()=>{
     if(lim&&!fim){ ref.current=setInterval(()=>setT(x=>x+1),1000); }
     return()=>clearInterval(ref.current);
   },[lim,fim]);
+
+  // ao terminar um SIMULADO, registra no historico de evolucao (uma vez)
+  useEffect(()=>{
+    if(fim && !salvouHist.current && tp && tp.id && tp.id.indexOf("SIM")===0){
+      salvouHist.current=true;
+      const tot=Math.min(lim||0,(qs||[]).length);
+      const liq = penalidade ? Math.max(0,ac-er) : ac;
+      const pc = tot>0 ? Math.round((liq/tot)*100) : 0;
+      const h=carregarHist();
+      h.push({data:new Date().toISOString(), titulo:tp.t||"Simulado", total:tot, acertos:ac, erros:er, pct:pc, tempo:t});
+      salvarHist(h.slice(-50));
+    }
+  },[fim]);
 
   if(!qs||qs.length===0) return(
     <div style={{textAlign:"center",padding:40}}>
@@ -132,16 +159,15 @@ function Quiz({tp, qs, onBack, banca}){
   const confirmar=()=>{
     if(!sel) return;
     const erradas=carregarErradas();
-    const chave=tp.id||tp.t;
+    const sig=sigQ(q);
     if(sel===q.g){
       setAc(a=>a+1);
-      // remove da lista de erradas se acertou agora
-      if(erradas[chave]){ erradas[chave]=erradas[chave].filter(i=>i!==idx); salvarErradas(erradas); }
+      // acertou agora: remove da lista de erradas
+      if(erradas[sig]){ delete erradas[sig]; salvarErradas(erradas); }
     } else {
       setEr(e=>e+1);
-      // registra questao errada (por indice no banco do topico)
-      if(!erradas[chave]) erradas[chave]=[];
-      if(!erradas[chave].includes(idx)){ erradas[chave].push(idx); salvarErradas(erradas); }
+      // registra questao errada por assinatura do enunciado
+      if(!erradas[sig]){ erradas[sig]=1; salvarErradas(erradas); }
     }
     setShow(true);
   };
@@ -464,6 +490,7 @@ function embaralhar(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math
 export default function FlashcardsApp(){
   const [d,setD]=useState(null);
   const [simGeral,setSimGeral]=useState(false);
+  const [revErradas,setRevErradas]=useState(false);
   if(d) return <DiscView d={d} onBack={()=>setD(null)}/>;
   if(simGeral){
     // monta pool proporcional ao peso real da prova FCC
@@ -477,6 +504,12 @@ export default function FlashcardsApp(){
     pool=embaralhar(pool);
     return <Quiz tp={{id:"SIM-GERAL",t:"Simulado Geral (peso real da prova)"}} qs={pool} onBack={()=>setSimGeral(false)} titulo="🏆 Simulado Geral Multidisciplinar"/>;
   }
+  if(revErradas){
+    const errQ=embaralhar(questoesErradas());
+    return <Quiz tp={{id:"REV-ERRADAS",t:"Revisao: questoes que voce errou"}} qs={errQ} onBack={()=>setRevErradas(false)} titulo="🔁 Revisao das Erradas"/>;
+  }
+  const nErradas=questoesErradas().length;
+  const hist=carregarHist().slice(-8).reverse();
   // total de questoes do simulado geral (soma dos pesos, limitado ao disponivel)
   let totalGeral=0;
   DISC.forEach(disc=>{let dq=0;disc.tps.forEach(t=>{const qk=QK[t.id]||"";if(qk&&Q[qk])dq+=Q[qk].length;});totalGeral+=Math.min(PESO_PROVA[disc.n]||4,dq);});
@@ -501,6 +534,38 @@ export default function FlashcardsApp(){
         </div>
         <span style={{background:C.gold,color:"#000",borderRadius:6,padding:"10px 18px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Iniciar →</span>
       </div>
+      {/* REVISAR SO AS ERRADAS */}
+      <div onClick={()=>{ if(nErradas>0) setRevErradas(true); }} style={{cursor:nErradas>0?"pointer":"default",opacity:nErradas>0?1:0.55,background:"linear-gradient(135deg,#ef444422,#f59e0b22)",border:`1px solid ${nErradas>0?"#ef4444":C.border}`,borderRadius:10,padding:"13px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontWeight:700,color:"#fca5a5",fontSize:14,marginBottom:2}}>🔁 Revisar so as questoes que errei</div>
+          <div style={{fontSize:12,color:C.muted}}>{nErradas>0?(nErradas+" questao(oes) acumulada(s) dos seus erros — refaca e elas saem da lista ao acertar"):"Nenhuma errada por enquanto. Resolva questoes e as que errar aparecem aqui."}</div>
+        </div>
+        {nErradas>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:6,padding:"10px 18px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Revisar ({nErradas}) →</span>}
+      </div>
+      {/* HISTORICO / EVOLUCAO DOS SIMULADOS */}
+      {hist.length>0&&(
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 16px",marginBottom:18}}>
+          <div style={{fontWeight:700,color:C.goldL,fontSize:14,marginBottom:10}}>📈 Sua evolucao nos simulados</div>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {hist.map((h,i)=>{
+              const cor=h.pct>=70?C.green:h.pct>=50?"#f59e0b":C.red;
+              const dt=new Date(h.data);
+              const datatxt=String(dt.getDate()).padStart(2,"0")+"/"+String(dt.getMonth()+1).padStart(2,"0")+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0");
+              return(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:10,color:C.muted,minWidth:74}}>{datatxt}</span>
+                  <div style={{flex:1,height:14,background:C.card2,borderRadius:7,overflow:"hidden",border:`1px solid ${C.border}`}}>
+                    <div style={{height:"100%",width:`${h.pct}%`,background:cor,transition:"width 0.3s"}}/>
+                  </div>
+                  <span style={{fontSize:12,fontWeight:700,color:cor,minWidth:38,textAlign:"right"}}>{h.pct}%</span>
+                  <span style={{fontSize:10,color:C.muted,minWidth:54}}>{h.acertos}/{h.total}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:10,color:C.muted,marginTop:8}}>Registra automaticamente os simulados (por disciplina e geral) que voce conclui.</div>
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:10}}>
         {DISC.map((disc,i)=>(
           <div key={i} onClick={()=>setD(disc)}

@@ -158,7 +158,7 @@ export default function Desempenho({ onClose }) {
   );
 
   const exportarRelatorio = () => {
-    const erradas = carregar("sefaz_erradas_v1", {});
+    const erradas = carregar("sefaz_erradas_v2", {});
     const horasTotal = (totalMin / 60).toFixed(1);
     const L = [];
     L.push("====================================================");
@@ -197,13 +197,15 @@ export default function Desempenho({ onClose }) {
     }
     L.push("");
     L.push("3) QUESTOES ERRADAS (para revisao)");
-    const ek = Object.keys(erradas).filter(function(k){ return (erradas[k]||[]).length > 0; });
+    const ek = Object.keys(erradas);
     if (ek.length === 0) {
       L.push("   Nenhuma questao errada registrada. Bom trabalho!");
     } else {
-      let tot = 0;
-      ek.forEach(function(k){ const n = erradas[k].length; tot += n; L.push("      - " + k + ": " + n + " questao(oes) a revisar"); });
-      L.push("   TOTAL a revisar: " + tot);
+      L.push("   TOTAL a revisar: " + ek.length + " questao(oes)");
+      L.push("   (use 'Revisar so as erradas' na area de simulados)");
+      L.push("");
+      ek.slice(0, 30).forEach(function(s){ L.push("      - " + s.slice(0,80)); });
+      if (ek.length > 30) L.push("      ... e mais " + (ek.length-30) + " questao(oes).");
     }
     L.push("");
     L.push("====================================================");
