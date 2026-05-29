@@ -401,7 +401,19 @@ function TopicoView({tp, corDisc, onBack}){
 // ── DISC VIEW ─────────────────────────────────────────
 function DiscView({d, onBack}){
   const [tp,setTp]=useState(null);
+  const [simulado,setSimulado]=useState(false);
   if(tp) return <TopicoView tp={tp} corDisc={d.c} onBack={()=>setTp(null)}/>;
+  // Simulado da disciplina: junta questoes de todos os topicos, embaralhadas
+  if(simulado){
+    let todas=[];
+    d.tps.forEach(t=>{ const qk=QK[t.id]||""; if(qk&&Q[qk]) todas=todas.concat(Q[qk]); });
+    // embaralhar (Fisher-Yates)
+    const arr=[...todas];
+    for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+    return <Quiz tp={{id:"SIM-"+d.tps[0].id,t:"Simulado: "+d.n}} qs={arr} onBack={()=>setSimulado(false)} titulo={"🎯 Simulado — "+d.n}/>;
+  }
+  // total de questoes da disciplina
+  let totalQ=0; d.tps.forEach(t=>{const qk=QK[t.id]||""; if(qk&&Q[qk]) totalQ+=Q[qk].length;});
   return(
     <div>
       <button onClick={onBack} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:6,padding:"6px 14px",cursor:"pointer",marginBottom:14,fontSize:12}}>← Disciplinas</button>
@@ -412,6 +424,12 @@ function DiscView({d, onBack}){
         </div>
         <p style={{margin:"6px 0 0",color:C.muted,fontSize:12}}>{d.tps.length} topico(s) — Escolha para estudar</p>
       </div>
+      {totalQ>0&&(
+        <button onClick={()=>setSimulado(true)}
+          style={{width:"100%",background:d.c+"18",border:`1px solid ${d.c}`,color:d.c,borderRadius:10,padding:"13px",cursor:"pointer",fontWeight:700,fontSize:14,marginBottom:14,display:"flex",justifyContent:"center",alignItems:"center",gap:8}}>
+          🎯 Simulado da Disciplina ({totalQ} questoes, formato prova) →
+        </button>
+      )}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {d.tps.map((tp,i)=>{
           const qk=QK[tp.id]||"";
