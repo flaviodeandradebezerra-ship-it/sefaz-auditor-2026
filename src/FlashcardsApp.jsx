@@ -79,6 +79,19 @@ function carregarHist(){try{const r=localStorage.getItem(K_HIST);return r?JSON.p
 function salvarHist(a){try{localStorage.setItem(K_HIST,JSON.stringify(a));}catch(e){}}
 // assinatura estavel da questao (independe de posicao/embaralhamento)
 function sigQ(q){return (q&&q.q?q.q:"").slice(0,120);}
+// mapa assinatura -> disciplina (lazy, construido na 1a chamada)
+let _sig2disc=null;
+function discDaSig(sig){
+  if(!_sig2disc){
+    _sig2disc={};
+    DISC.forEach(d=>d.tps.forEach(t=>{const qk=QK[t.id]||"";(Q[qk]||[]).forEach(q=>{_sig2disc[sigQ(q)]=d.n;});}));
+  }
+  return _sig2disc[sig]||"Outras";
+}
+// estatistica de acerto por disciplina (acumulada)
+const K_STATS="sefaz_stats_disc_v1";
+function carregarStats(){try{const r=localStorage.getItem(K_STATS);return r?JSON.parse(r):{};}catch(e){return {};}}
+function salvarStats(o){try{localStorage.setItem(K_STATS,JSON.stringify(o));}catch(e){}}
 // reconstroi a lista de questoes erradas varrendo todo o banco Q
 function questoesErradas(){
   const er=carregarErradas();
@@ -99,11 +112,20 @@ function Quiz({tp, qs, onBack, banca}){
   const ref=useRef(null);
   const penalidade = banca==="cebraspe";
   const salvouHist=useRef(false);
+  // modo prova: simulados (SIM-*) tem tempo-limite de 3 min/questao, contagem regressiva
+  const exame = !!(tp && tp.id && tp.id.indexOf("SIM")===0);
+  const limiteSeg = exame ? (lim||0)*180 : 0;
+  const restante = exame ? Math.max(0, limiteSeg - t) : 0;
 
   useEffect(()=>{
     if(lim&&!fim){ ref.current=setInterval(()=>setT(x=>x+1),1000); }
     return()=>clearInterval(ref.current);
   },[lim,fim]);
+
+  // auto-encerra o simulado quando esgota o tempo da prova
+  useEffect(()=>{
+    if(exame && lim && !fim && t>=limiteSeg && limiteSeg>0){ setFim(true); clearInterval(ref.current); }
+  },[t,exame,lim,fim,limiteSeg]);
 
   // ao terminar um SIMULADO, registra no historico de evolucao (uma vez)
   useEffect(()=>{
@@ -147,6 +169,7 @@ function Quiz({tp, qs, onBack, banca}){
             ))}
           </div>
           <p style={{color:C.muted,fontSize:11}}>Com cronometro, gabarito comentado e contador de acertos/erros</p>
+          {exame&&<p style={{color:"#f59e0b",fontSize:11,marginTop:8}}>⏱ Modo prova: tempo-limite de 3 min/questao (contagem regressiva). Ao escolher a quantidade, o cronometro inicia e encerra sozinho ao zerar.</p>}
           {penalidade&&<p style={{color:C.orange,fontSize:11,marginTop:8}}>⚠️ Modo Cebraspe ativo: cada erro anula um acerto</p>}
         </div>
       </div>
@@ -160,15 +183,21 @@ function Quiz({tp, qs, onBack, banca}){
     if(!sel) return;
     const erradas=carregarErradas();
     const sig=sigQ(q);
+    const disc=discDaSig(sig);
+    const stats=carregarStats();
+    if(!stats[disc]) stats[disc]={ac:0,er:0};
     if(sel===q.g){
       setAc(a=>a+1);
+      stats[disc].ac++;
       // acertou agora: remove da lista de erradas
       if(erradas[sig]){ delete erradas[sig]; salvarErradas(erradas); }
     } else {
       setEr(e=>e+1);
+      stats[disc].er++;
       // registra questao errada por assinatura do enunciado
       if(!erradas[sig]){ erradas[sig]=1; salvarErradas(erradas); }
     }
+    salvarStats(stats);
     setShow(true);
   };
 
@@ -224,7 +253,7 @@ function Quiz({tp, qs, onBack, banca}){
         <div style={{display:"flex",gap:14,alignItems:"center"}}>
           <span style={{color:C.green,fontWeight:700,fontSize:14}}>✅ {ac}</span>
           <span style={{color:C.red,fontWeight:700,fontSize:14}}>❌ {er}</span>
-          <span style={{fontFamily:"monospace",fontSize:19,fontWeight:700,color:t>300?C.red:C.green}}>⏱ {fmtT(t)}</span>
+          <span style={{fontFamily:"monospace",fontSize:19,fontWeight:700,color:exame?(restante<=limiteSeg*0.1?C.red:restante<=limiteSeg*0.25?"#f59e0b":C.green):(t>300?C.red:C.green)}}>⏱ {exame?fmtT(restante):fmtT(t)}</span>
         </div>
         <span style={{fontSize:12,color:C.muted}}>Q{idx+1}/{sel_qs.length}</span>
       </div>
@@ -490,7 +519,7 @@ function embaralhar(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math
 export default function FlashcardsApp(){
   const [d,setD]=useState(null);
   const [simGeral,setSimGeral]=useState(false);
-  const [revErradas,setRevErradas]=useState(false);
+  const [revErradas,setRevErradas]=useState(null);
   if(d) return <DiscView d={d} onBack={()=>setD(null)}/>;
   if(simGeral){
     // monta pool proporcional ao peso real da prova FCC
@@ -505,10 +534,17 @@ export default function FlashcardsApp(){
     return <Quiz tp={{id:"SIM-GERAL",t:"Simulado Geral (peso real da prova)"}} qs={pool} onBack={()=>setSimGeral(false)} titulo="🏆 Simulado Geral Multidisciplinar"/>;
   }
   if(revErradas){
-    const errQ=embaralhar(questoesErradas());
-    return <Quiz tp={{id:"REV-ERRADAS",t:"Revisao: questoes que voce errou"}} qs={errQ} onBack={()=>setRevErradas(false)} titulo="🔁 Revisao das Erradas"/>;
+    let errQ=questoesErradas();
+    if(revErradas!=="ALL") errQ=errQ.filter(q=>discDaSig(sigQ(q))===revErradas);
+    errQ=embaralhar(errQ);
+    const rotulo = revErradas==="ALL" ? "todas as erradas" : revErradas;
+    return <Quiz tp={{id:"REV-ERRADAS",t:"Revisao: "+rotulo}} qs={errQ} onBack={()=>setRevErradas(null)} titulo="🔁 Revisao das Erradas"/>;
   }
-  const nErradas=questoesErradas().length;
+  const errList=questoesErradas();
+  const nErradas=errList.length;
+  const errPorDisc={};
+  errList.forEach(q=>{const dn=discDaSig(sigQ(q)); errPorDisc[dn]=(errPorDisc[dn]||0)+1;});
+  const errDiscOrden=Object.entries(errPorDisc).sort((a,b)=>b[1]-a[1]);
   const hist=carregarHist().slice(-8).reverse();
   // total de questoes do simulado geral (soma dos pesos, limitado ao disponivel)
   let totalGeral=0;
@@ -534,13 +570,25 @@ export default function FlashcardsApp(){
         </div>
         <span style={{background:C.gold,color:"#000",borderRadius:6,padding:"10px 18px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Iniciar →</span>
       </div>
-      {/* REVISAR SO AS ERRADAS */}
-      <div onClick={()=>{ if(nErradas>0) setRevErradas(true); }} style={{cursor:nErradas>0?"pointer":"default",opacity:nErradas>0?1:0.55,background:"linear-gradient(135deg,#ef444422,#f59e0b22)",border:`1px solid ${nErradas>0?"#ef4444":C.border}`,borderRadius:10,padding:"13px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
-        <div>
-          <div style={{fontWeight:700,color:"#fca5a5",fontSize:14,marginBottom:2}}>🔁 Revisar so as questoes que errei</div>
-          <div style={{fontSize:12,color:C.muted}}>{nErradas>0?(nErradas+" questao(oes) acumulada(s) dos seus erros — refaca e elas saem da lista ao acertar"):"Nenhuma errada por enquanto. Resolva questoes e as que errar aparecem aqui."}</div>
+      {/* REVISAR SO AS ERRADAS (com filtro por disciplina) */}
+      <div style={{background:"linear-gradient(135deg,#ef444422,#f59e0b22)",border:`1px solid ${nErradas>0?"#ef4444":C.border}`,borderRadius:10,padding:"13px 16px",marginBottom:18,opacity:nErradas>0?1:0.65}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+          <div>
+            <div style={{fontWeight:700,color:"#fca5a5",fontSize:14,marginBottom:2}}>🔁 Revisar so as questoes que errei</div>
+            <div style={{fontSize:12,color:C.muted}}>{nErradas>0?(nErradas+" questao(oes) acumulada(s) — refaca e elas saem da lista ao acertar"):"Nenhuma errada por enquanto. Resolva questoes e as que errar aparecem aqui."}</div>
+          </div>
+          {nErradas>0&&<span onClick={()=>setRevErradas("ALL")} style={{cursor:"pointer",background:"#ef4444",color:"#fff",borderRadius:6,padding:"10px 18px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Revisar todas ({nErradas}) →</span>}
         </div>
-        {nErradas>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:6,padding:"10px 18px",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>Revisar ({nErradas}) →</span>}
+        {nErradas>0&&(
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:11}}>
+            {errDiscOrden.map(([dn,c])=>(
+              <span key={dn} onClick={()=>setRevErradas(dn)} title={"Revisar so "+dn}
+                style={{cursor:"pointer",background:C.card2,border:`1px solid #ef444466`,color:"#fca5a5",borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:600}}>
+                {dn} · {c}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       {/* HISTORICO / EVOLUCAO DOS SIMULADOS */}
       {hist.length>0&&(

@@ -196,7 +196,16 @@ export default function Desempenho({ onClose }) {
       pares.forEach(function(p){ L.push("      - " + p[0] + ": " + (p[1]/60).toFixed(1) + "h"); });
     }
     L.push("");
-    L.push("3) QUESTOES ERRADAS (para revisao)");
+    L.push("3) ACERTOS POR DISCIPLINA");
+    const statsD = carregar("sefaz_stats_disc_v1", {});
+    const ld = Object.entries(statsD).map(function(par){ const s=par[1]; const tot=(s.ac||0)+(s.er||0); const pct=tot>0?Math.round((s.ac/tot)*100):0; return { d:par[0], ac:s.ac||0, er:s.er||0, tot:tot, pct:pct }; }).filter(function(x){ return x.tot>0; }).sort(function(a,b){ return a.pct-b.pct; });
+    if (ld.length === 0) {
+      L.push("   (sem questoes resolvidas ainda)");
+    } else {
+      ld.forEach(function(x){ L.push("      - " + x.d + ": " + x.pct + "% (" + x.ac + " ac / " + x.er + " er)"); });
+    }
+    L.push("");
+    L.push("4) QUESTOES ERRADAS (para revisao)");
     const ek = Object.keys(erradas);
     if (ek.length === 0) {
       L.push("   Nenhuma questao errada registrada. Bom trabalho!");
@@ -242,6 +251,7 @@ export default function Desempenho({ onClose }) {
           <Btn id="vert">Edital Verticalizado</Btn>
           <Btn id="rev">Revisoes de Hoje {revisoesHoje.length>0?`(${revisoesHoje.length})`:""}</Btn>
           <Btn id="diario">Diario & Pomodoro</Btn>
+          <Btn id="stats">Acertos por Disciplina</Btn>
         </div>
 
         {/* ============ VERTICALIZADO ============ */}
@@ -396,6 +406,55 @@ export default function Desempenho({ onClose }) {
             )}
           </div>
         )}
+        {aba==="stats" && (() => {
+          const stats = carregar("sefaz_stats_disc_v1", {});
+          const linhas = Object.entries(stats).map(([disc, s]) => {
+            const tot = (s.ac||0) + (s.er||0);
+            const pct = tot > 0 ? Math.round((s.ac/tot)*100) : 0;
+            return { disc, ac:s.ac||0, er:s.er||0, tot, pct };
+          }).filter(x => x.tot > 0).sort((a,b) => a.pct - b.pct);
+          const totGeral = linhas.reduce((s,x)=>s+x.tot,0);
+          const acGeral = linhas.reduce((s,x)=>s+x.ac,0);
+          const pctGeral = totGeral>0 ? Math.round((acGeral/totGeral)*100) : 0;
+          return (
+            <div>
+              <div style={{background:C.card,border:`1px solid ${C.gold}33`,borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontSize:13,color:C.text,marginBottom:4}}>Aproveitamento geral nas questoes resolvidas</div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{flex:1,height:12,background:C.border,borderRadius:6,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${pctGeral}%`,background:pctGeral>=70?C.green:pctGeral>=50?"#f59e0b":C.red}}/>
+                  </div>
+                  <span style={{fontSize:15,fontWeight:700,color:pctGeral>=70?C.green:pctGeral>=50?"#f59e0b":C.red}}>{pctGeral}%</span>
+                </div>
+                <div style={{fontSize:11,color:C.muted,marginTop:5}}>{acGeral} acertos em {totGeral} questoes respondidas</div>
+              </div>
+              {linhas.length === 0 ? (
+                <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"24px 10px"}}>Resolva questoes nos simulados/topicos para ver aqui o seu aproveitamento por disciplina (as materias que voce mais erra aparecem primeiro).</div>
+              ) : (
+                <div>
+                  <div style={{fontSize:12,color:C.muted,marginBottom:10}}>Ordenado das materias que voce <strong style={{color:C.red}}>mais erra</strong> para as que mais acerta — priorize as primeiras.</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {linhas.map((x,i)=>{
+                      const cor = x.pct>=70?C.green:x.pct>=50?"#f59e0b":C.red;
+                      return (
+                        <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,gap:8}}>
+                            <span style={{fontSize:12,color:C.text,fontWeight:600}}>{x.disc}</span>
+                            <span style={{fontSize:13,fontWeight:700,color:cor}}>{x.pct}%</span>
+                          </div>
+                          <div style={{height:8,background:C.border,borderRadius:4,overflow:"hidden",marginBottom:4}}>
+                            <div style={{height:"100%",width:`${x.pct}%`,background:cor}}/>
+                          </div>
+                          <div style={{fontSize:10,color:C.muted}}>✅ {x.ac} acertos · ❌ {x.er} erros · {x.tot} resolvidas</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
