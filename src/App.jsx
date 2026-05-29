@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Component } from "react";
 import FlashcardsApp from "./FlashcardsApp.jsx"; // SEFAZ_DISCIPLINAS_V3_COMPLETO_2026
+import ConfigConcursos from "./ConfigConcursos.jsx";
 
 class ErrorBoundary extends Component {
   constructor(props){ super(props); this.state={erro:null}; }
@@ -568,6 +569,7 @@ export default function App() {
   const [tempo, setTempo] = useState(5400); // 1h30min
   const [simAtiva, setSimAtiva] = useState(false);
   const [historico, setHistorico] = useState([]);
+  const [showConfig, setShowConfig] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -625,8 +627,10 @@ export default function App() {
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <button onClick={()=>setModo("guia")} style={{padding:"8px 14px",borderRadius:6,border:`1px solid ${modo==="guia"?C.gold:C.border}`,background:modo==="guia"?C.gold+"22":"transparent",color:modo==="guia"?C.gold:C.muted,cursor:"pointer",fontSize:12,fontWeight:700}}>📋 Guia</button>
           <button onClick={iniciarSim} style={{padding:"8px 14px",borderRadius:6,border:`1px solid ${modo==="simulado"?C.gold:C.border}`,background:modo==="simulado"?C.gold+"22":"transparent",color:modo==="simulado"?C.gold:C.muted,cursor:"pointer",fontSize:12,fontWeight:700}}>🎯 Simulado</button>
+          <button onClick={()=>setShowConfig(true)} title="Configurar busca de concursos" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:15,fontWeight:700}}>⚙️</button>
         </div>
       </div>
+      {showConfig && <ConfigConcursos onClose={()=>setShowConfig(false)} />}
     </div>
   );
 
