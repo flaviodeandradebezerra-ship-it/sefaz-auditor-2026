@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Component } from "react";
 import FlashcardsApp from "./FlashcardsApp.jsx"; // SEFAZ_DISCIPLINAS_V3_COMPLETO_2026
 import LeisFontes from "./LeisFontes.jsx";
+import Notificacoes from "./Notificacoes.jsx";
 import { Q as Q_BANCO } from "./fcData.js";
 const TOTAL_Q = Object.values(Q_BANCO).reduce((s,arr)=>s+(arr?arr.length:0),0);
 import ConfigConcursos from "./ConfigConcursos.jsx";
@@ -642,6 +643,7 @@ export default function App() {
           <button onClick={()=>setShowNotas(true)} title="Anotacoes" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📝 Anotacoes</button>
           <button onClick={()=>setShowMetodo(true)} title="Metodo por Banca" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>🎓 Metodo</button>
           <button onClick={()=>setShowDesempenho(true)} title="Painel de Desempenho" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📊 Desempenho</button>
+          <Notificacoes />
           <button onClick={()=>setShowConfig(true)} title="Configurar busca de concursos" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:15,fontWeight:700}}>⚙️</button>
         </div>
       </div>
