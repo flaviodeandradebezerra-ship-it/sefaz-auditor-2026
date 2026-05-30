@@ -81,13 +81,17 @@ function gerarNotificacoes(){
       titulo:item.titulo||"Configuracao salva", texto:item.texto||"" });
   });
 
-  // 5c) NOVOS CONCURSOS do feed (atualizado pelo robo agendado), filtrados pela area salva
+  // 5c) NOVOS CONCURSOS do feed (atualizado pelo robo agendado), filtrados pela CONFIGURACAO do usuario
   const feed = carregar("sefaz_concursos_feed_v1", null);
   if (feed && Array.isArray(feed.concursos)){
-    const areaSel = (cfgConc && cfgConc.area) ? cfgConc.area : "fiscal"; // app focado em fiscal por padrao
+    // area escolhida pelo usuario em Configuracoes; se nao configurou, mostra todas
+    const areaSel = (cfgConc && cfgConc.area) ? cfgConc.area : null;
+    const configurou = !!areaSel;
     const STATUS_LABEL = { inscricoes_abertas:"Inscricoes abertas", edital_iminente:"Edital iminente", previsto:"Previsto", detectado:"Detectado — confira a fonte", encerrado:"Encerrado" };
     const STATUS_COR = { inscricoes_abertas:C.green, edital_iminente:C.orange, previsto:C.blue, detectado:C.purple, encerrado:C.muted };
-    const relevantes = feed.concursos.filter(c => c.area === areaSel && c.status !== "encerrado");
+    const relevantes = feed.concursos.filter(c =>
+      c.status !== "encerrado" && (!configurou || c.area === areaSel)
+    );
     relevantes.forEach(c => {
       const lbl = STATUS_LABEL[c.status] || "Concurso";
       const prazo = c.inscricoes ? (" · inscricoes ate "+c.inscricoes.split(" a ").pop()) : "";
@@ -98,6 +102,12 @@ function gerarNotificacoes(){
         texto:(c.cargo||"")+(c.vagas?(" — "+c.vagas):"")+(c.banca&&c.banca!=="a definir"?(" · banca "+c.banca):"")+prazo
       });
     });
+    // se o usuario ainda nao configurou area, sugere configurar para personalizar
+    if (!configurou && relevantes.length > 0){
+      N.push({ id:"dica:configurar-area", tipo:"info", cor:C.gold, icone:"⚙️",
+        titulo:"Personalize seus alertas de concurso",
+        texto:"Abra Configuracoes e escolha sua area de interesse para receber so os concursos que importam para voce." });
+    }
   }
 
   // 6) DICA fixa de boas-vindas/uso (sempre presente; some apos vista)

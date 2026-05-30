@@ -24,15 +24,38 @@ import xml.etree.ElementTree as ET
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARQ = os.path.join(ROOT, "concursos.json")
 
-# Palavras-chave da area fiscal (case-insensitive)
+# Palavras-chave da area fiscal (case-insensitive) - usadas como base/contexto
 PALAVRAS = ["sefaz", "auditor", "analista", "fiscal", "iss"]
 # Termos que reforcam contexto de concurso (reduz ruido)
 CTX = ["concurso", "edital", "inscri", "seleç", "selec", "prova"]
 
+# Areas espelhando o ConfigConcursos do app: id -> {query, termos para classificar}
+# O robo busca por TODAS as areas para alimentar o feed; o app (sino) filtra
+# depois pela area que o usuario escolheu em Configuracoes.
+AREAS = {
+    "fiscal":        {"q": "auditor fiscal tributacao receita sefaz", "kw": ["sefaz","auditor fiscal","tribut","iss","fazend","receita estadual"]},
+    "tribunais":     {"q": "concurso tribunal analista tecnico judiciario TJ TRT TRF", "kw": ["tribunal","judiciario","tj ","trt","trf","tre "]},
+    "controle":      {"q": "concurso tribunal de contas auditor controle TCU TCE", "kw": ["tribunal de contas","tcu","tce","controle externo","cgu"]},
+    "bancos":        {"q": "concurso banco do brasil caixa BNB escriturario", "kw": ["banco do brasil","caixa","escriturario","bnb","banco central"]},
+    "policial":      {"q": "concurso policia civil militar penal delegado", "kw": ["policia","delegado","penal","policial","perito"]},
+    "legislativo":   {"q": "concurso camara assembleia legislativa analista", "kw": ["camara","assembleia","legislativ","senado"]},
+    "administrativa":{"q": "concurso analista administrativo tecnico", "kw": ["administrativ","tecnico administrativo"]},
+}
+# Quais areas o robo varre por padrao (as de maior procura; extensivel)
+AREAS_ROBO = ["fiscal", "tribunais", "controle", "bancos"]
+
 MAX_POR_FONTE = 5     # candidatos por fonte
-MAX_AUTO = 30         # teto de itens auto-detectados no feed
+MAX_AUTO = 40         # teto de itens auto-detectados no feed
 TIMEOUT = 25
 UA = "Mozilla/5.0 (compatible; sefaz-ce-estudos/1.0; monitoramento de concursos)"
+
+def classificar_area(texto):
+    """Classifica um achado em uma area pelo texto; default 'fiscal'."""
+    t = (texto or "").lower()
+    for aid, cfg in AREAS.items():
+        if any(k in t for k in cfg["kw"]):
+            return aid
+    return "fiscal"
 
 # Querido Diario (DOM municipal)
 QD_API = "https://api.queridodiario.ok.org.br/gazettes"
@@ -229,26 +252,22 @@ def coletar_google(diag):
 
 
 def coletar_tavily(diag):
-    """Busca via Tavily Search API (https://tavily.com). Requer TAVILY_API_KEY. Sem chave, pula.
-    A Custom Search do Google foi fechada para novos projetos em 2026; Tavily e a via ativa."""
+    """Busca via Tavily Search API por TODAS as areas em AREAS_ROBO. Cada achado e
+    etiquetado com sua area (o app filtra depois pela config do usuario). Sem chave, pula."""
     api_key = os.environ.get("TAVILY_API_KEY")
     if not api_key:
         diag["Tavily"] = {"ok": False, "hits": 0, "erro": "sem TAVILY_API_KEY (desativado)"}
         return []
-    info = {"ok": False, "hits": 0, "erro": None}
+    info = {"ok": False, "hits": 0, "erro": None, "porArea": {}}
     achados = []
     vistos = set()
     ano = date.today().year
-    consultas = [
-        f"concurso SEFAZ auditor fiscal edital {ano}",
-        f"concurso auditor fiscal estadual inscricoes abertas {ano}",
-        f"concurso ISS auditor fiscal municipal edital {ano}",
-        f"concurso analista SEFAZ tributos edital {ano}",
-    ]
-    for q in consultas:
+    for aid in AREAS_ROBO:
+        termo = AREAS.get(aid, {}).get("q", "")
+        q = f"concurso {termo} edital inscricoes {ano}"
         payload = json.dumps({
             "api_key": api_key, "query": q, "search_depth": "basic",
-            "max_results": 8, "topic": "general",
+            "max_results": 6, "topic": "general",
         }).encode("utf-8")
         try:
             req = urllib.request.Request("https://api.tavily.com/search", data=payload,
@@ -258,7 +277,7 @@ def coletar_tavily(diag):
             info["ok"] = True
         except urllib.error.HTTPError as e:
             try:
-                corpo = e.read().decode("utf-8", errors="ignore")[:200]
+                corpo = e.read().decode("utf-8", errors="ignore")[:160]
             except Exception:
                 corpo = ""
             info["erro"] = f"HTTP {e.code}: {corpo}"[:200]
@@ -266,26 +285,28 @@ def coletar_tavily(diag):
         except Exception as e:
             info["erro"] = str(e)[:160]
             continue
+        n_area = 0
         for it in (data.get("results") or []):
             link = it.get("url", "")
             titulo = it.get("title", "")
             conteudo = it.get("content", "")
             if link in vistos:
                 continue
-            if not _tem_kw(titulo + " " + conteudo):
+            if not any(c in (titulo + " " + conteudo).lower() for c in CTX):
                 continue
             vistos.add(link)
+            area_item = classificar_area(titulo + " " + conteudo)
             achados.append({
                 "id": _id("tavily", link or titulo),
-                "orgao": "Busca web (Tavily)", "cargo": titulo[:140], "area": "fiscal",
+                "orgao": "Busca web (Tavily)", "cargo": titulo[:140], "area": area_item,
                 "banca": "a definir", "vagas": "verificar na fonte", "status": "detectado",
                 "uf": "", "data": date.today().isoformat(), "fonte": link,
                 "obs": (conteudo[:180] + " [...]") if conteudo else "Detectado via busca web.",
             })
-            if len(achados) >= 8:
+            n_area += 1
+            if n_area >= 5:
                 break
-        if len(achados) >= 8:
-            break
+        info["porArea"][aid] = n_area
     info["hits"] = len(achados)
     diag["Tavily"] = info
     return achados
