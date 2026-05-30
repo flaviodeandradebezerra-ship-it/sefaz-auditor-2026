@@ -174,27 +174,42 @@ def coletar_google(diag):
         return []
     info = {"ok": False, "hits": 0, "erro": None}
     achados = []
-    q = "concurso (sefaz OR auditor fiscal OR ISS) edital 2026"
-    url = "https://www.googleapis.com/customsearch/v1?" + urllib.parse.urlencode({
-        "key": api_key, "cx": cx, "q": q, "num": 10, "dateRestrict": "m1", "lr": "lang_pt"})
-    try:
-        data = _get_json(url)
-        info["ok"] = True
+    vistos = set()
+    ano = date.today().year
+    consultas = [
+        f"concurso SEFAZ auditor fiscal edital {ano}",
+        f"concurso auditor fiscal estadual edital inscricoes {ano}",
+        f"concurso ISS auditor fiscal municipal edital {ano}",
+        f"concurso analista SEFAZ tributos edital {ano}",
+    ]
+    for q in consultas:
+        url = "https://www.googleapis.com/customsearch/v1?" + urllib.parse.urlencode({
+            "key": api_key, "cx": cx, "q": q, "num": 10, "dateRestrict": "m1", "lr": "lang_pt"})
+        try:
+            data = _get_json(url)
+            info["ok"] = True
+        except Exception as e:
+            info["erro"] = str(e)[:120]
+            continue
         for it in (data.get("items") or []):
+            link = it.get("link", "")
             titulo = it.get("title", "")
+            if link in vistos:
+                continue
             if not _tem_kw(titulo + " " + it.get("snippet", "")):
                 continue
+            vistos.add(link)
             achados.append({
-                "id": _id("google", it.get("link", titulo)),
+                "id": _id("google", link or titulo),
                 "orgao": "Google (busca)", "cargo": titulo[:140], "area": "fiscal",
                 "banca": "a definir", "vagas": "verificar na fonte", "status": "detectado",
-                "uf": "", "data": date.today().isoformat(), "fonte": it.get("link", ""),
+                "uf": "", "data": date.today().isoformat(), "fonte": link,
                 "obs": (it.get("snippet", "")[:180] + " [...]"),
             })
-            if len(achados) >= MAX_POR_FONTE:
+            if len(achados) >= 8:
                 break
-    except Exception as e:
-        info["erro"] = str(e)[:120]
+        if len(achados) >= 8:
+            break
     info["hits"] = len(achados)
     diag["Google"] = info
     return achados
