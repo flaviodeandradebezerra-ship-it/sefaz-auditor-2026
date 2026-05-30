@@ -1,48 +1,215 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Robo de manutencao do feed de concursos (executado pelo GitHub Actions agendado).
+Robo de monitoramento de concursos (GitHub Actions agendado).
 
-DESENHO HIBRIDO:
-  1. Querido Diario (Open Knowledge Brasil) - API publica de diarios oficiais
-     MUNICIPAIS. Usada para detectar concursos no ambito LOCAL/municipal (ISS,
-     prefeituras) das cidades cearenses configuradas. Doc: https://docs.queridodiario.ok.org.br
-  2. Curadoria manual - os itens fixos do concursos.json (SEFAZ estaduais e
-     federais), mantidos a mao, pois nao ha API limpa unificada para essas esferas.
-  3. RSS do Diario do CE - leitor generico/configuravel. Desativado por padrao
-     porque o DOE-CE estadual nao publica um RSS oficial de concursos. Quando
-     houver uma URL de feed confiavel, basta preenche-la em RSS_CE_URL.
+ARQUITETURA: motor modular e tolerante a falhas. Cada fonte e tentada de forma
+independente (try/except), falha sozinha sem derrubar as demais, e reporta no
+bloco "diagnostico" do concursos.json se funcionou (ok/hits/erro).
 
-Alem disso, a cada execucao o robo:
-  - expira automaticamente concursos com prazo de inscricao vencido;
-  - carimba "ultimaVerificacao" e (se mudou) "atualizadoEm";
-  - limita os itens auto-detectados (qd:/rss:) aos mais recentes, preservando
-    integralmente a curadoria manual.
+FONTES (filtradas pelas PALAVRAS-CHAVE da area fiscal):
+  - OFICIAIS: DOU (Imprensa Nacional), DOE-CE, DOM (via Querido Diario).
+  - BANCAS: FCC, CEBRASPE, FGV, VUNESP, IDECAN.
+  - CURSOS: Gran, Estrategia, Qconcursos, Tec Concursos (best-effort; muitos sao
+    SPAs/anti-bot e podem nao responder a HTTP simples - o diagnostico revela).
+  - BUSCA: Google via Custom Search JSON API OFICIAL (desativado ate ter chave;
+    NUNCA raspamos o google.com/search, que viola os termos de uso).
+
+A curadoria manual (itens sem prefixo de fonte automatica) e sempre preservada.
 """
-import json, os, sys, urllib.parse, urllib.request
+import json, os, re, sys, html, urllib.parse, urllib.request, hashlib
 from datetime import date, datetime, timedelta
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARQ = os.path.join(ROOT, "concursos.json")
 
-# --- Configuracao das fontes ---------------------------------------------
-# 1) Querido Diario: cidades do Ceara (codigos IBGE) a monitorar
+# Palavras-chave da area fiscal (case-insensitive)
+PALAVRAS = ["sefaz", "auditor", "analista", "fiscal", "iss"]
+# Termos que reforcam contexto de concurso (reduz ruido)
+CTX = ["concurso", "edital", "inscri", "seleç", "selec", "prova"]
+
+MAX_POR_FONTE = 5     # candidatos por fonte
+MAX_AUTO = 30         # teto de itens auto-detectados no feed
+TIMEOUT = 25
+UA = "Mozilla/5.0 (compatible; sefaz-ce-estudos/1.0; monitoramento de concursos)"
+
+# Querido Diario (DOM municipal)
 QD_API = "https://api.queridodiario.ok.org.br/gazettes"
-QD_TERRITORIOS = ["2304400"]          # Fortaleza-CE (capital). Extensivel.
-QD_PALAVRAS = "concurso"              # busca ampla; filtra-se o fiscal no excerto
-QD_TERMOS_FISCAIS = ("fiscal", "auditor", "tribut", "sefaz", "fazend")
-QD_JANELA_DIAS = 45                   # busca publicacoes dos ultimos 45 dias
-QD_MAX = 20
+QD_TERRITORIOS = ["2304400"]   # Fortaleza-CE (extensivel)
+QD_JANELA_DIAS = 45
 
-# 3) RSS do Diario do CE: sem feed oficial confirmado -> desativado por padrao.
-RSS_CE_URL = ""   # preencha com uma URL de RSS confiavel para ativar
+# Paginas de listagem por fonte (best-effort)
+FONTES_HTML = [
+    # (nome, tipo, url)
+    ("DOU",        "oficial", "https://www.in.gov.br/consulta/-/buscar/dou?q=sefaz+auditor+fiscal&s=do1"),
+    ("DOE-CE",     "oficial", "https://www.ceara.gov.br/diario-oficial/"),
+    ("FCC",        "banca",   "https://www.concursosfcc.com.br/index.html"),
+    ("CEBRASPE",   "banca",   "https://www.cebraspe.org.br/concursos/"),
+    ("FGV",        "banca",   "https://conhecimento.fgv.br/concursos"),
+    ("VUNESP",     "banca",   "https://www.vunesp.com.br/"),
+    ("IDECAN",     "banca",   "https://www.idecan.org.br/concursos"),
+    ("Gran",       "curso",   "https://www.grancursosonline.com.br/concursos"),
+    ("Estrategia", "curso",   "https://www.estrategiaconcursos.com.br/concursos/"),
+    ("Qconcursos", "curso",   "https://www.qconcursos.com/concursos"),
+    ("TecConcursos","curso",  "https://www.tecconcursos.com.br/concursos"),
+]
 
-MAX_AUTO = 15     # teto de itens auto-detectados mantidos no feed
+
+def _get(url, timeout=TIMEOUT):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "pt-BR,pt"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        raw = r.read()
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw.decode("latin-1", errors="ignore")
+
+
+def _get_json(url, timeout=TIMEOUT):
+    return json.loads(_get(url, timeout))
+
+
+def _tem_kw(texto):
+    t = texto.lower()
+    return any(p in t for p in PALAVRAS)
+
+
+def _slug(s):
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def _id(nome, chave):
+    h = hashlib.sha1(chave.encode("utf-8")).hexdigest()[:10]
+    return "src:" + _slug(nome) + ":" + h
+
+
+def coletar_html(nome, tipo, url, diag):
+    """Scanner generico: baixa a pagina, extrai links com palavra-chave fiscal."""
+    info = {"ok": False, "hits": 0, "erro": None}
+    achados = []
+    try:
+        pagina = _get(url)
+    except Exception as e:
+        info["erro"] = str(e)[:120]
+        diag[nome] = info
+        return achados
+    info["ok"] = True
+    # extrai ancoras <a href=...>texto</a>
+    for m in re.finditer(r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', pagina, re.I | re.S):
+        href, txt = m.group(1), m.group(2)
+        txt = html.unescape(re.sub(r"<[^>]+>", "", txt)).strip()
+        txt = re.sub(r"\s+", " ", txt)
+        if len(txt) < 8:
+            continue
+        low = txt.lower()
+        if not _tem_kw(txt):
+            continue
+        if not any(c in low for c in CTX):
+            continue
+        link = urllib.parse.urljoin(url, href)
+        achados.append({
+            "id": _id(nome, link + "|" + txt),
+            "orgao": nome + " (" + tipo + ")",
+            "cargo": txt[:140],
+            "area": "fiscal",
+            "banca": nome if tipo == "banca" else "a definir",
+            "vagas": "verificar na fonte",
+            "status": "detectado",
+            "uf": "",
+            "data": date.today().isoformat(),
+            "fonte": link,
+            "obs": "Detectado em " + nome + " — confira o edital na fonte.",
+        })
+        if len(achados) >= MAX_POR_FONTE:
+            break
+    info["hits"] = len(achados)
+    diag[nome] = info
+    return achados
+
+
+def coletar_querido_diario(diag):
+    """DOM municipal via API publica do Querido Diario."""
+    info = {"ok": False, "hits": 0, "bruto": 0, "erro": None}
+    achados = []
+    desde = (date.today() - timedelta(days=QD_JANELA_DIAS)).isoformat()
+    for terr in QD_TERRITORIOS:
+        params = urllib.parse.urlencode({
+            "territory_ids": terr, "querystring": "concurso",
+            "published_since": desde, "excerpt_size": 240,
+            "number_of_excerpts": 1, "size": 20,
+        })
+        try:
+            data = _get_json(QD_API + "?" + params)
+            info["ok"] = True
+        except Exception as e:
+            info["erro"] = str(e)[:120]
+            continue
+        gz = data.get("gazettes") or []
+        info["bruto"] += len(gz)
+        for g in gz:
+            exc = " ".join((g.get("highlight_texts") or [""])[0].split())
+            if not _tem_kw(exc):
+                continue
+            achados.append({
+                "id": "qd:" + str(g.get("territory_id")) + ":" + str(g.get("date")),
+                "orgao": "DOM " + str(g.get("territory_name", "")) + "/" + str(g.get("state_code", "")),
+                "cargo": "Mencao fiscal detectada no diario oficial municipal",
+                "area": "fiscal", "banca": "a definir", "vagas": "verificar no diario",
+                "status": "detectado", "uf": str(g.get("state_code", "")),
+                "data": str(g.get("date", "")), "fonte": g.get("url", ""),
+                "obs": (exc[:200] + " [...]") if exc else "Detectado via Querido Diario.",
+            })
+    info["hits"] = len(achados)
+    diag["QD-DOM"] = info
+    return achados
+
+
+def coletar_google(diag):
+    """Busca via Google Custom Search JSON API OFICIAL (requer chave). Sem chave, pula."""
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    cx = os.environ.get("GOOGLE_CX")
+    if not api_key or not cx:
+        diag["Google"] = {"ok": False, "hits": 0, "erro": "sem GOOGLE_API_KEY/GOOGLE_CX (desativado)"}
+        return []
+    info = {"ok": False, "hits": 0, "erro": None}
+    achados = []
+    q = "concurso (sefaz OR auditor fiscal OR ISS) edital 2026"
+    url = "https://www.googleapis.com/customsearch/v1?" + urllib.parse.urlencode({
+        "key": api_key, "cx": cx, "q": q, "num": 10, "dateRestrict": "m1", "lr": "lang_pt"})
+    try:
+        data = _get_json(url)
+        info["ok"] = True
+        for it in (data.get("items") or []):
+            titulo = it.get("title", "")
+            if not _tem_kw(titulo + " " + it.get("snippet", "")):
+                continue
+            achados.append({
+                "id": _id("google", it.get("link", titulo)),
+                "orgao": "Google (busca)", "cargo": titulo[:140], "area": "fiscal",
+                "banca": "a definir", "vagas": "verificar na fonte", "status": "detectado",
+                "uf": "", "data": date.today().isoformat(), "fonte": it.get("link", ""),
+                "obs": (it.get("snippet", "")[:180] + " [...]"),
+            })
+            if len(achados) >= MAX_POR_FONTE:
+                break
+    except Exception as e:
+        info["erro"] = str(e)[:120]
+    info["hits"] = len(achados)
+    diag["Google"] = info
+    return achados
+
+
+def coletar_de_fontes(diag):
+    todos = []
+    todos += coletar_querido_diario(diag)
+    for nome, tipo, url in FONTES_HTML:
+        todos += coletar_html(nome, tipo, url, diag)
+    todos += coletar_google(diag)
+    return todos
 
 
 def parse_data_br(s):
-    """Converte 'dd/mm/aaaa' em date; aceita intervalo 'd1 a d2' (usa d2)."""
     if not s:
         return None
     s = s.strip()
@@ -56,141 +223,44 @@ def parse_data_br(s):
     return None
 
 
-def _http_get_json(url, timeout=25):
-    req = urllib.request.Request(url, headers={"User-Agent": "sefaz-ce-estudos/1.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
-
-
-def coletar_querido_diario(diag):
-    """Item 1: consulta a API do Querido Diario para cada cidade configurada."""
-    achados = []
-    desde = (date.today() - timedelta(days=QD_JANELA_DIAS)).isoformat()
-    total_bruto = 0
-    for terr in QD_TERRITORIOS:
-        params = urllib.parse.urlencode({
-            "territory_ids": terr,
-            "querystring": QD_PALAVRAS,
-            "published_since": desde,
-            "excerpt_size": 240,
-            "number_of_excerpts": 1,
-            "size": QD_MAX,
-        })
-        url = QD_API + "?" + params
-        try:
-            data = _http_get_json(url)
-        except Exception as e:
-            diag["erro"] = f"QD {terr}: {e}"
-            print(f"[QD] falha ao consultar {terr}: {e}", file=sys.stderr)
-            continue
-        gazettes = data.get("gazettes") or []
-        total_bruto += len(gazettes)
-        for g in gazettes:
-            exc = (g.get("highlight_texts") or [""])[0]
-            exc = " ".join(exc.split())
-            low = exc.lower()
-            # mantem apenas publicacoes que mencionem termos fiscais
-            if not any(t in low for t in QD_TERMOS_FISCAIS):
-                continue
-            achados.append({
-                "id": "qd:" + str(g.get("territory_id")) + ":" + str(g.get("date")),
-                "orgao": "Diario Oficial - " + str(g.get("territory_name", "")) + "/" + str(g.get("state_code", "")),
-                "cargo": "Mencao a concurso fiscal detectada no diario oficial",
-                "area": "fiscal",
-                "banca": "a definir",
-                "vagas": "verificar no diario",
-                "status": "detectado",
-                "uf": str(g.get("state_code", "")),
-                "data": str(g.get("date", "")),
-                "fonte": g.get("url", ""),
-                "obs": (exc[:200] + " [...]") if exc else "Publicacao detectada via Querido Diario.",
-            })
-    diag["qd_bruto"] = total_bruto
-    diag["qd_fiscais"] = len(achados)
-    return achados
-
-
-def coletar_rss_ce():
-    """Item 3: leitor de RSS do Diario do CE (desativado ate ter URL confiavel)."""
-    if not RSS_CE_URL:
-        return []
-    achados = []
-    try:
-        req = urllib.request.Request(RSS_CE_URL, headers={"User-Agent": "sefaz-ce-estudos/1.0"})
-        with urllib.request.urlopen(req, timeout=25) as r:
-            raiz = ET.fromstring(r.read())
-        for item in raiz.iter("item"):
-            titulo = (item.findtext("title") or "").strip()
-            link = (item.findtext("link") or "").strip()
-            if not titulo:
-                continue
-            low = titulo.lower()
-            if "concurso" not in low and "edital" not in low:
-                continue
-            achados.append({
-                "id": "rss:ce:" + str(abs(hash(link or titulo)) % (10**10)),
-                "orgao": "Diario Oficial do Estado - CE",
-                "cargo": titulo[:120],
-                "area": "fiscal",
-                "banca": "a definir",
-                "vagas": "verificar no diario",
-                "status": "detectado",
-                "uf": "CE",
-                "fonte": link,
-                "obs": "Publicacao detectada via RSS do DOE-CE.",
-            })
-    except Exception as e:
-        print(f"[RSS-CE] falha: {e}", file=sys.stderr)
-    return achados
-
-
-def coletar_de_fontes(diag):
-    """Agrega as fontes automaticas (itens 1 e 3)."""
-    return coletar_querido_diario(diag) + coletar_rss_ce()
-
-
 def main():
     if not os.path.exists(ARQ):
-        print("concursos.json nao encontrado", file=sys.stderr)
-        sys.exit(1)
+        print("concursos.json nao encontrado", file=sys.stderr); sys.exit(1)
     with open(ARQ, "r", encoding="utf-8") as f:
         data = json.load(f)
-
     hoje = date.today()
     concursos = data.get("concursos", [])
     mudou = False
 
-    # expira prazos vencidos
     for c in concursos:
         prazo = parse_data_br(c.get("inscricoes"))
         if prazo and hoje > prazo and c.get("status") != "encerrado":
-            c["status"] = "encerrado"; mudou = True
-            print(f"[expirado] {c.get('id')}")
+            c["status"] = "encerrado"; mudou = True; print(f"[expirado] {c.get('id')}")
 
-    # mescla fontes automaticas
-    diag = {"ultimaColeta": hoje.isoformat(), "qd_bruto": 0, "qd_fiscais": 0, "erro": None}
-    novos = coletar_de_fontes(diag)
+    fontes_diag = {}
+    novos = coletar_de_fontes(fontes_diag)
     existentes = {c.get("id") for c in concursos}
     for n in novos:
         if n.get("id") and n["id"] not in existentes:
             concursos.append(n); existentes.add(n["id"]); mudou = True
-            print(f"[novo] {n.get('id')}")
+            print(f"[novo] {n.get('id')} | {n.get('orgao')}")
 
-    # limita itens auto-detectados aos mais recentes (preserva curadoria manual)
-    auto = [c for c in concursos if str(c.get("id", "")).startswith(("qd:", "rss:"))]
-    manuais = [c for c in concursos if not str(c.get("id", "")).startswith(("qd:", "rss:"))]
+    pref = ("qd:", "src:")
+    auto = [c for c in concursos if str(c.get("id", "")).startswith(pref)]
+    manuais = [c for c in concursos if not str(c.get("id", "")).startswith(pref)]
     auto.sort(key=lambda c: c.get("data", ""), reverse=True)
     concursos = manuais + auto[:MAX_AUTO]
 
+    total_hits = sum(v.get("hits", 0) for v in fontes_diag.values())
     data["concursos"] = concursos
     data["ultimaVerificacao"] = hoje.isoformat()
-    data["diagnostico"] = diag
+    data["diagnostico"] = {"ultimaColeta": hoje.isoformat(), "totalDetectado": total_hits, "fontes": fontes_diag}
     if mudou:
         data["atualizadoEm"] = hoje.isoformat()
 
     with open(ARQ, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2); f.write("\n")
-    print("MUDOU=1" if mudou else "MUDOU=0")
+    print("MUDOU=1" if mudou else "MUDOU=0", "| hits:", total_hits)
 
 
 if __name__ == "__main__":

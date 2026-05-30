@@ -85,7 +85,7 @@ function gerarNotificacoes(){
   const feed = carregar("sefaz_concursos_feed_v1", null);
   if (feed && Array.isArray(feed.concursos)){
     const areaSel = (cfgConc && cfgConc.area) ? cfgConc.area : "fiscal"; // app focado em fiscal por padrao
-    const STATUS_LABEL = { inscricoes_abertas:"Inscricoes abertas", edital_iminente:"Edital iminente", previsto:"Previsto", detectado:"Detectado no Diario Oficial", encerrado:"Encerrado" };
+    const STATUS_LABEL = { inscricoes_abertas:"Inscricoes abertas", edital_iminente:"Edital iminente", previsto:"Previsto", detectado:"Detectado — confira a fonte", encerrado:"Encerrado" };
     const STATUS_COR = { inscricoes_abertas:C.green, edital_iminente:C.orange, previsto:C.blue, detectado:C.purple, encerrado:C.muted };
     const relevantes = feed.concursos.filter(c => c.area === areaSel && c.status !== "encerrado");
     relevantes.forEach(c => {
