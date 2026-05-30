@@ -138,5 +138,11 @@
       "obs": "Comissao organizadora definida; edital pode sair em 2026."
     }
   ],
-  "ultimaVerificacao": "2026-05-30"
+  "ultimaVerificacao": "2026-05-30",
+  "diagnostico": {
+    "ultimaColeta": "2026-05-30",
+    "qd_bruto": 0,
+    "qd_fiscais": 0,
+    "erro": null
+  }
 }
