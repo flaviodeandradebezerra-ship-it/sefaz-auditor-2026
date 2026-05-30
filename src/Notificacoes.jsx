@@ -81,6 +81,25 @@ function gerarNotificacoes(){
       titulo:item.titulo||"Configuracao salva", texto:item.texto||"" });
   });
 
+  // 5c) NOVOS CONCURSOS do feed (atualizado pelo robo agendado), filtrados pela area salva
+  const feed = carregar("sefaz_concursos_feed_v1", null);
+  if (feed && Array.isArray(feed.concursos)){
+    const areaSel = (cfgConc && cfgConc.area) ? cfgConc.area : "fiscal"; // app focado em fiscal por padrao
+    const STATUS_LABEL = { inscricoes_abertas:"Inscricoes abertas", edital_iminente:"Edital iminente", previsto:"Previsto", encerrado:"Encerrado" };
+    const STATUS_COR = { inscricoes_abertas:C.green, edital_iminente:C.orange, previsto:C.blue, encerrado:C.muted };
+    const relevantes = feed.concursos.filter(c => c.area === areaSel && c.status !== "encerrado");
+    relevantes.forEach(c => {
+      const lbl = STATUS_LABEL[c.status] || "Concurso";
+      const prazo = c.inscricoes ? (" · inscricoes ate "+c.inscricoes.split(" a ").pop()) : "";
+      N.push({
+        id:"concurso-feed:"+c.id+":"+(feed.atualizadoEm||""),
+        tipo:"concurso", cor: STATUS_COR[c.status]||C.purple, icone:"🆕",
+        titulo:"["+lbl+"] "+c.orgao,
+        texto:(c.cargo||"")+(c.vagas?(" — "+c.vagas):"")+(c.banca&&c.banca!=="a definir"?(" · banca "+c.banca):"")+prazo
+      });
+    });
+  }
+
   // 6) DICA fixa de boas-vindas/uso (sempre presente; some apos vista)
   N.push({ id:"dica:leis-fontes", tipo:"info", cor:C.gold, icone:"⚖️",
     titulo:"Nova aba: Leis, Fontes e Jurisprudencias",
@@ -97,6 +116,16 @@ export default function Notificacoes(){
   useEffect(() => {
     setNotifs(gerarNotificacoes());
     setVistas(carregar(K_VISTAS, []));
+    // busca o feed de concursos (atualizado pelo robo agendado) e regenera
+    fetch("concursos.json?ts=" + Date.now())
+      .then(r => r.ok ? r.json() : null)
+      .then(feed => {
+        if (feed && Array.isArray(feed.concursos)){
+          salvar("sefaz_concursos_feed_v1", feed);
+          setNotifs(gerarNotificacoes());
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // recarrega ao abrir (capta mudancas de outras abas)

@@ -1,0 +1,142 @@
+{
+  "atualizadoEm": "2026-05-30",
+  "fonteResumo": "Compilado de portais de concursos (Gran, Estrategia, Magistrar, Folha Dirigida). Confira sempre o edital oficial do orgao/banca.",
+  "concursos": [
+    {
+      "id": "sefaz-ce-2026",
+      "orgao": "SEFAZ-CE",
+      "cargo": "Auditor-Fiscal da Fazenda Estadual",
+      "area": "fiscal",
+      "banca": "FCC",
+      "vagas": "Auditor-Fiscal (banca FCC definida)",
+      "status": "previsto",
+      "uf": "CE",
+      "fonte": "https://magistrarcursos.com.br/blog/concursos-fiscais/",
+      "obs": "Banca FCC definida para o certame do Ceara."
+    },
+    {
+      "id": "sefaz-sp-apofp-2026",
+      "orgao": "SEFAZ-SP",
+      "cargo": "Analista em Planejamento, Orcamento e Financas Publicas (APOFP)",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "60 vagas previstas",
+      "status": "edital_iminente",
+      "uf": "SP",
+      "fonte": "https://magistrarcursos.com.br/blog/concurso-sefaz-sp/",
+      "obs": "Comissao organizadora instituida em 27/05/2026."
+    },
+    {
+      "id": "sefaz-df-2026",
+      "orgao": "SEFAZ-DF (Secretaria de Economia)",
+      "cargo": "Auditor Fiscal",
+      "area": "fiscal",
+      "banca": "Cebraspe",
+      "vagas": "a definir",
+      "status": "edital_iminente",
+      "uf": "DF",
+      "fonte": "https://lsensino.com.br/artigo/area-fiscal-editais-previstos/",
+      "obs": "Cebraspe definido; minuta do edital em ajustes finais."
+    },
+    {
+      "id": "sefaz-ba-2026",
+      "orgao": "SEFAZ-BA",
+      "cargo": "Auditor Fiscal e Agente de Tributos",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "200 vagas previstas",
+      "status": "previsto",
+      "uf": "BA",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-fiscais/",
+      "obs": "Concurso confirmado pelo governo; previsto no PLOA 2026."
+    },
+    {
+      "id": "sefaz-to-2026",
+      "orgao": "SEFAZ-TO",
+      "cargo": "Auditor Fiscal",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "200 vagas previstas",
+      "status": "previsto",
+      "uf": "TO",
+      "fonte": "https://lsensino.com.br/artigo/area-fiscal-editais-previstos/",
+      "obs": "Autorizado; edital e provas previstos para 2026."
+    },
+    {
+      "id": "sefaz-al-2026",
+      "orgao": "SEFAZ-AL",
+      "cargo": "Auditor Fiscal da Administracao Tributaria Estadual",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "50 vagas",
+      "status": "previsto",
+      "uf": "AL",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-fiscais/",
+      "obs": "Confirmado dentro do maior pacote de selecoes do estado."
+    },
+    {
+      "id": "tj-ce-2026",
+      "orgao": "TJ-CE (Tribunal de Justica do Ceara)",
+      "cargo": "Analista, Oficial de Justica e Tecnico Judiciario",
+      "area": "tribunais",
+      "banca": "FCC",
+      "vagas": "24 vagas imediatas + cadastro de reserva",
+      "status": "inscricoes_abertas",
+      "uf": "CE",
+      "inscricoes": "18/05/2026 a 22/06/2026",
+      "prova": "09/08/2026",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-tribunais-de-justica/",
+      "obs": "Remuneracao inicial ate R$ 8,8 mil. Banca FCC."
+    },
+    {
+      "id": "tj-sc-2026",
+      "orgao": "TJ-SC (Tribunal de Justica de Santa Catarina)",
+      "cargo": "Analista (Administrativo, Contabil, Economico e de Sistemas)",
+      "area": "tribunais",
+      "banca": "FGV",
+      "vagas": "2 vagas imediatas + cadastro de reserva",
+      "status": "previsto",
+      "uf": "SC",
+      "prova": "28/06/2026",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-tribunais/",
+      "obs": "Inscricoes encerradas; provas em junho/2026."
+    },
+    {
+      "id": "tce-sp-2026",
+      "orgao": "TCE-SP (Tribunal de Contas do Estado de SP)",
+      "cargo": "Auditor de Controle Externo",
+      "area": "controle",
+      "banca": "VUNESP",
+      "vagas": "a definir",
+      "status": "edital_iminente",
+      "uf": "SP",
+      "fonte": "https://blog.grancursosonline.com.br/concurso-tce-sp/",
+      "obs": "VUNESP definida; edital previsto ate junho/2026."
+    },
+    {
+      "id": "banco-brasil-2026",
+      "orgao": "Banco do Brasil",
+      "cargo": "Escriturario",
+      "area": "bancos",
+      "banca": "a definir",
+      "vagas": "nivel medio (a definir)",
+      "status": "previsto",
+      "uf": "BR",
+      "fonte": "https://blog.grancursosonline.com.br/concurso-banco-do-brasil/",
+      "obs": "Validade do ultimo certame expirada; novo edital esperado em 2026. Remuneracao inicial ~R$ 6.286,78."
+    },
+    {
+      "id": "trt-8-2026",
+      "orgao": "TRT 8a Regiao",
+      "cargo": "Analista e Tecnico Judiciario",
+      "area": "tribunais",
+      "banca": "a definir",
+      "vagas": "a definir",
+      "status": "previsto",
+      "uf": "PA",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-tribunais/",
+      "obs": "Comissao organizadora definida; edital pode sair em 2026."
+    }
+  ],
+  "ultimaVerificacao": "2026-05-30"
+}
