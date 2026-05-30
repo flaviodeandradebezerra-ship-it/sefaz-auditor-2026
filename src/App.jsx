@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Component } from "react";
 import FlashcardsApp from "./FlashcardsApp.jsx"; // SEFAZ_DISCIPLINAS_V3_COMPLETO_2026
+import LeisFontes from "./LeisFontes.jsx";
 import { Q as Q_BANCO } from "./fcData.js";
 const TOTAL_Q = Object.values(Q_BANCO).reduce((s,arr)=>s+(arr?arr.length:0),0);
 import ConfigConcursos from "./ConfigConcursos.jsx";
@@ -296,7 +297,7 @@ const SUGESTOES = {
 function Bdg({children,cor=C.gold,bg}){return <span style={{background:bg||cor+"22",border:`1px solid ${cor}`,borderRadius:4,padding:"2px 8px",fontSize:11,color:cor,fontWeight:700,whiteSpace:"nowrap"}}>{children}</span>;}
 function fmt(s){const m=Math.floor(s/60),sec=s%60;return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;}
 
-const TABS_GUIA=["Visão Geral","Disciplinas","Cronograma","Banco de Questões","Discursivas","Estratégia FCC","🎯 Simulados por Disciplina"];
+const TABS_GUIA=["Visão Geral","Disciplinas","Cronograma","Banco de Questões","Discursivas","Estratégia FCC","🎯 Simulados por Disciplina","⚖️ Leis, Fontes e Jurisprudências"];
 
 // ─── COMPONENTE DE FEEDBACK IMEDIATO ─────────────────
 function FeedbackQuestao({q, resposta, onProxima, isUltima, onFinalizar}) {
@@ -1268,8 +1269,15 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 7 – BANCO COMPLETO */}
+        {/* TAB 7 – LEIS, FONTES E JURISPRUDÊNCIAS */}
         {tab===7&&(
+          <div>
+            <ErrorBoundary><LeisFontes /></ErrorBoundary>
+          </div>
+        )}
+
+        {/* TAB 8 – BANCO COMPLETO */}
+        {tab===8&&(
           <div>
             <h2 style={{color:C.gold,margin:"0 0 5px",fontSize:17}}>📚 Banco Completo – 30 Questões Estilo FCC</h2>
             <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
