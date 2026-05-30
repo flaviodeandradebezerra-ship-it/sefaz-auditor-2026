@@ -3,24 +3,41 @@
 """
 Robo de manutencao do feed de concursos (executado pelo GitHub Actions agendado).
 
-O que ele faz HOJE, de forma automatica e confiavel:
-  1. Carrega o concursos.json atual.
-  2. Expira automaticamente os concursos cujo prazo de inscricao ja passou
-     (status -> "encerrado"), comparando com a data de execucao.
-  3. Atualiza os carimbos "atualizadoEm" e "ultimaVerificacao".
-  4. Grava o arquivo de volta (o workflow faz commit + redeploy se houver mudanca).
+DESENHO HIBRIDO:
+  1. Querido Diario (Open Knowledge Brasil) - API publica de diarios oficiais
+     MUNICIPAIS. Usada para detectar concursos no ambito LOCAL/municipal (ISS,
+     prefeituras) das cidades cearenses configuradas. Doc: https://docs.queridodiario.ok.org.br
+  2. Curadoria manual - os itens fixos do concursos.json (SEFAZ estaduais e
+     federais), mantidos a mao, pois nao ha API limpa unificada para essas esferas.
+  3. RSS do Diario do CE - leitor generico/configuravel. Desativado por padrao
+     porque o DOE-CE estadual nao publica um RSS oficial de concursos. Quando
+     houver uma URL de feed confiavel, basta preenche-la em RSS_CE_URL.
 
-PONTO DE EXTENSAO (monitoramento externo real):
-  A funcao coletar_de_fontes() e o lugar para plugar uma fonte de dados real
-  (API publica, RSS de Diario Oficial, etc.). Hoje retorna [] de proposito,
-  para nao depender de scraping fragil/instavel. Ao conectar uma fonte aqui,
-  os novos itens sao mesclados ao feed por id, sem perder a curadoria manual.
+Alem disso, a cada execucao o robo:
+  - expira automaticamente concursos com prazo de inscricao vencido;
+  - carimba "ultimaVerificacao" e (se mudou) "atualizadoEm";
+  - limita os itens auto-detectados (qd:/rss:) aos mais recentes, preservando
+    integralmente a curadoria manual.
 """
-import json, os, sys
-from datetime import date, datetime
+import json, os, sys, urllib.parse, urllib.request
+from datetime import date, datetime, timedelta
+import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARQ = os.path.join(ROOT, "concursos.json")
+
+# --- Configuracao das fontes ---------------------------------------------
+# 1) Querido Diario: cidades do Ceara (codigos IBGE) a monitorar
+QD_API = "https://api.queridodiario.ok.org.br/gazettes"
+QD_TERRITORIOS = ["2304400"]          # Fortaleza-CE (capital). Extensivel.
+QD_PALAVRAS = "concurso auditor fiscal tributos"
+QD_JANELA_DIAS = 30                   # busca publicacoes dos ultimos 30 dias
+QD_MAX = 10
+
+# 3) RSS do Diario do CE: sem feed oficial confirmado -> desativado por padrao.
+RSS_CE_URL = ""   # preencha com uma URL de RSS confiavel para ativar
+
+MAX_AUTO = 15     # teto de itens auto-detectados mantidos no feed
 
 
 def parse_data_br(s):
@@ -38,19 +55,93 @@ def parse_data_br(s):
     return None
 
 
+def _http_get_json(url, timeout=25):
+    req = urllib.request.Request(url, headers={"User-Agent": "sefaz-ce-estudos/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def coletar_querido_diario():
+    """Item 1: consulta a API do Querido Diario para cada cidade configurada."""
+    achados = []
+    desde = (date.today() - timedelta(days=QD_JANELA_DIAS)).isoformat()
+    for terr in QD_TERRITORIOS:
+        params = urllib.parse.urlencode({
+            "territory_ids": terr,
+            "querystring": QD_PALAVRAS,
+            "published_since": desde,
+            "excerpt_size": 240,
+            "number_of_excerpts": 1,
+            "size": QD_MAX,
+        })
+        url = QD_API + "?" + params
+        try:
+            data = _http_get_json(url)
+        except Exception as e:
+            print(f"[QD] falha ao consultar {terr}: {e}", file=sys.stderr)
+            continue
+        for g in (data.get("gazettes") or []):
+            exc = (g.get("highlight_texts") or [""])[0]
+            exc = " ".join(exc.split())[:200]
+            achados.append({
+                "id": "qd:" + str(g.get("territory_id")) + ":" + str(g.get("date")),
+                "orgao": "Diario Oficial - " + str(g.get("territory_name", "")) + "/" + str(g.get("state_code", "")),
+                "cargo": "Mencao a concurso/auditoria fiscal detectada no diario oficial",
+                "area": "fiscal",
+                "banca": "a definir",
+                "vagas": "verificar no diario",
+                "status": "detectado",
+                "uf": str(g.get("state_code", "")),
+                "data": str(g.get("date", "")),
+                "fonte": g.get("url", ""),
+                "obs": (exc + " [...]") if exc else "Publicacao detectada via Querido Diario.",
+            })
+    return achados
+
+
+def coletar_rss_ce():
+    """Item 3: leitor de RSS do Diario do CE (desativado ate ter URL confiavel)."""
+    if not RSS_CE_URL:
+        return []
+    achados = []
+    try:
+        req = urllib.request.Request(RSS_CE_URL, headers={"User-Agent": "sefaz-ce-estudos/1.0"})
+        with urllib.request.urlopen(req, timeout=25) as r:
+            raiz = ET.fromstring(r.read())
+        for item in raiz.iter("item"):
+            titulo = (item.findtext("title") or "").strip()
+            link = (item.findtext("link") or "").strip()
+            if not titulo:
+                continue
+            low = titulo.lower()
+            if "concurso" not in low and "edital" not in low:
+                continue
+            achados.append({
+                "id": "rss:ce:" + str(abs(hash(link or titulo)) % (10**10)),
+                "orgao": "Diario Oficial do Estado - CE",
+                "cargo": titulo[:120],
+                "area": "fiscal",
+                "banca": "a definir",
+                "vagas": "verificar no diario",
+                "status": "detectado",
+                "uf": "CE",
+                "fonte": link,
+                "obs": "Publicacao detectada via RSS do DOE-CE.",
+            })
+    except Exception as e:
+        print(f"[RSS-CE] falha: {e}", file=sys.stderr)
+    return achados
+
+
 def coletar_de_fontes():
-    """Ponto de extensao para uma fonte de dados real (API/RSS). Veja docstring."""
-    # Exemplo de como seria a mesclagem (desativado por padrao):
-    # itens = chamar_api_publica()
-    # return [normalizar(i) for i in itens]
-    return []
+    """Agrega as fontes automaticas (itens 1 e 3)."""
+    return coletar_querido_diario() + coletar_rss_ce()
 
 
 def main():
     if not os.path.exists(ARQ):
         print("concursos.json nao encontrado", file=sys.stderr)
         sys.exit(1)
-
     with open(ARQ, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -58,36 +149,34 @@ def main():
     concursos = data.get("concursos", [])
     mudou = False
 
-    # 1) expirar prazos vencidos automaticamente
+    # expira prazos vencidos
     for c in concursos:
         prazo = parse_data_br(c.get("inscricoes"))
         if prazo and hoje > prazo and c.get("status") != "encerrado":
-            c["status"] = "encerrado"
-            mudou = True
-            print(f"[expirado] {c.get('id')} (prazo {c.get('inscricoes')})")
+            c["status"] = "encerrado"; mudou = True
+            print(f"[expirado] {c.get('id')}")
 
-    # 2) mesclar itens de fontes externas (se houver; hoje vazio)
+    # mescla fontes automaticas
     novos = coletar_de_fontes()
-    if novos:
-        existentes = {c.get("id") for c in concursos}
-        for n in novos:
-            if n.get("id") and n["id"] not in existentes:
-                concursos.append(n)
-                existentes.add(n["id"])
-                mudou = True
-                print(f"[novo] {n.get('id')}")
+    existentes = {c.get("id") for c in concursos}
+    for n in novos:
+        if n.get("id") and n["id"] not in existentes:
+            concursos.append(n); existentes.add(n["id"]); mudou = True
+            print(f"[novo] {n.get('id')}")
 
-    # 3) carimbos de verificacao
+    # limita itens auto-detectados aos mais recentes (preserva curadoria manual)
+    auto = [c for c in concursos if str(c.get("id", "")).startswith(("qd:", "rss:"))]
+    manuais = [c for c in concursos if not str(c.get("id", "")).startswith(("qd:", "rss:"))]
+    auto.sort(key=lambda c: c.get("data", ""), reverse=True)
+    concursos = manuais + auto[:MAX_AUTO]
+
     data["concursos"] = concursos
     data["ultimaVerificacao"] = hoje.isoformat()
     if mudou:
         data["atualizadoEm"] = hoje.isoformat()
 
     with open(ARQ, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-        f.write("\n")
-
-    # sinaliza ao workflow se houve mudanca de conteudo (alem do carimbo)
+        json.dump(data, f, ensure_ascii=False, indent=2); f.write("\n")
     print("MUDOU=1" if mudou else "MUDOU=0")
 
 
