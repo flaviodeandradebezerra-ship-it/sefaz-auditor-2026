@@ -22,6 +22,7 @@ jobs:
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GOOGLE_CX: ${{ secrets.GOOGLE_CX }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: python3 scripts/atualizar_concursos.py
 
       - name: Commit das mudancas (se houver)

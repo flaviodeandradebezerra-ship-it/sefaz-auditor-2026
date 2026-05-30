@@ -228,12 +228,76 @@ def coletar_google(diag):
     return achados
 
 
+def coletar_tavily(diag):
+    """Busca via Tavily Search API (https://tavily.com). Requer TAVILY_API_KEY. Sem chave, pula.
+    A Custom Search do Google foi fechada para novos projetos em 2026; Tavily e a via ativa."""
+    api_key = os.environ.get("TAVILY_API_KEY")
+    if not api_key:
+        diag["Tavily"] = {"ok": False, "hits": 0, "erro": "sem TAVILY_API_KEY (desativado)"}
+        return []
+    info = {"ok": False, "hits": 0, "erro": None}
+    achados = []
+    vistos = set()
+    ano = date.today().year
+    consultas = [
+        f"concurso SEFAZ auditor fiscal edital {ano}",
+        f"concurso auditor fiscal estadual inscricoes abertas {ano}",
+        f"concurso ISS auditor fiscal municipal edital {ano}",
+        f"concurso analista SEFAZ tributos edital {ano}",
+    ]
+    for q in consultas:
+        payload = json.dumps({
+            "api_key": api_key, "query": q, "search_depth": "basic",
+            "max_results": 8, "topic": "general",
+        }).encode("utf-8")
+        try:
+            req = urllib.request.Request("https://api.tavily.com/search", data=payload,
+                headers={"Content-Type": "application/json", "User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                data = json.loads(r.read().decode("utf-8"))
+            info["ok"] = True
+        except urllib.error.HTTPError as e:
+            try:
+                corpo = e.read().decode("utf-8", errors="ignore")[:200]
+            except Exception:
+                corpo = ""
+            info["erro"] = f"HTTP {e.code}: {corpo}"[:200]
+            continue
+        except Exception as e:
+            info["erro"] = str(e)[:160]
+            continue
+        for it in (data.get("results") or []):
+            link = it.get("url", "")
+            titulo = it.get("title", "")
+            conteudo = it.get("content", "")
+            if link in vistos:
+                continue
+            if not _tem_kw(titulo + " " + conteudo):
+                continue
+            vistos.add(link)
+            achados.append({
+                "id": _id("tavily", link or titulo),
+                "orgao": "Busca web (Tavily)", "cargo": titulo[:140], "area": "fiscal",
+                "banca": "a definir", "vagas": "verificar na fonte", "status": "detectado",
+                "uf": "", "data": date.today().isoformat(), "fonte": link,
+                "obs": (conteudo[:180] + " [...]") if conteudo else "Detectado via busca web.",
+            })
+            if len(achados) >= 8:
+                break
+        if len(achados) >= 8:
+            break
+    info["hits"] = len(achados)
+    diag["Tavily"] = info
+    return achados
+
+
 def coletar_de_fontes(diag):
     todos = []
     todos += coletar_querido_diario(diag)
     for nome, tipo, url in FONTES_HTML:
         todos += coletar_html(nome, tipo, url, diag)
     todos += coletar_google(diag)
+    todos += coletar_tavily(diag)
     return todos
 
 
