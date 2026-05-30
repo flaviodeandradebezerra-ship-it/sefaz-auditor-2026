@@ -30,9 +30,10 @@ ARQ = os.path.join(ROOT, "concursos.json")
 # 1) Querido Diario: cidades do Ceara (codigos IBGE) a monitorar
 QD_API = "https://api.queridodiario.ok.org.br/gazettes"
 QD_TERRITORIOS = ["2304400"]          # Fortaleza-CE (capital). Extensivel.
-QD_PALAVRAS = "concurso auditor fiscal tributos"
-QD_JANELA_DIAS = 30                   # busca publicacoes dos ultimos 30 dias
-QD_MAX = 10
+QD_PALAVRAS = "concurso"              # busca ampla; filtra-se o fiscal no excerto
+QD_TERMOS_FISCAIS = ("fiscal", "auditor", "tribut", "sefaz", "fazend")
+QD_JANELA_DIAS = 45                   # busca publicacoes dos ultimos 45 dias
+QD_MAX = 20
 
 # 3) RSS do Diario do CE: sem feed oficial confirmado -> desativado por padrao.
 RSS_CE_URL = ""   # preencha com uma URL de RSS confiavel para ativar
@@ -61,10 +62,11 @@ def _http_get_json(url, timeout=25):
         return json.loads(r.read().decode("utf-8"))
 
 
-def coletar_querido_diario():
+def coletar_querido_diario(diag):
     """Item 1: consulta a API do Querido Diario para cada cidade configurada."""
     achados = []
     desde = (date.today() - timedelta(days=QD_JANELA_DIAS)).isoformat()
+    total_bruto = 0
     for terr in QD_TERRITORIOS:
         params = urllib.parse.urlencode({
             "territory_ids": terr,
@@ -78,15 +80,22 @@ def coletar_querido_diario():
         try:
             data = _http_get_json(url)
         except Exception as e:
+            diag["erro"] = f"QD {terr}: {e}"
             print(f"[QD] falha ao consultar {terr}: {e}", file=sys.stderr)
             continue
-        for g in (data.get("gazettes") or []):
+        gazettes = data.get("gazettes") or []
+        total_bruto += len(gazettes)
+        for g in gazettes:
             exc = (g.get("highlight_texts") or [""])[0]
-            exc = " ".join(exc.split())[:200]
+            exc = " ".join(exc.split())
+            low = exc.lower()
+            # mantem apenas publicacoes que mencionem termos fiscais
+            if not any(t in low for t in QD_TERMOS_FISCAIS):
+                continue
             achados.append({
                 "id": "qd:" + str(g.get("territory_id")) + ":" + str(g.get("date")),
                 "orgao": "Diario Oficial - " + str(g.get("territory_name", "")) + "/" + str(g.get("state_code", "")),
-                "cargo": "Mencao a concurso/auditoria fiscal detectada no diario oficial",
+                "cargo": "Mencao a concurso fiscal detectada no diario oficial",
                 "area": "fiscal",
                 "banca": "a definir",
                 "vagas": "verificar no diario",
@@ -94,8 +103,10 @@ def coletar_querido_diario():
                 "uf": str(g.get("state_code", "")),
                 "data": str(g.get("date", "")),
                 "fonte": g.get("url", ""),
-                "obs": (exc + " [...]") if exc else "Publicacao detectada via Querido Diario.",
+                "obs": (exc[:200] + " [...]") if exc else "Publicacao detectada via Querido Diario.",
             })
+    diag["qd_bruto"] = total_bruto
+    diag["qd_fiscais"] = len(achados)
     return achados
 
 
@@ -133,9 +144,9 @@ def coletar_rss_ce():
     return achados
 
 
-def coletar_de_fontes():
+def coletar_de_fontes(diag):
     """Agrega as fontes automaticas (itens 1 e 3)."""
-    return coletar_querido_diario() + coletar_rss_ce()
+    return coletar_querido_diario(diag) + coletar_rss_ce()
 
 
 def main():
@@ -157,7 +168,8 @@ def main():
             print(f"[expirado] {c.get('id')}")
 
     # mescla fontes automaticas
-    novos = coletar_de_fontes()
+    diag = {"ultimaColeta": hoje.isoformat(), "qd_bruto": 0, "qd_fiscais": 0, "erro": None}
+    novos = coletar_de_fontes(diag)
     existentes = {c.get("id") for c in concursos}
     for n in novos:
         if n.get("id") and n["id"] not in existentes:
@@ -172,6 +184,7 @@ def main():
 
     data["concursos"] = concursos
     data["ultimaVerificacao"] = hoje.isoformat()
+    data["diagnostico"] = diag
     if mudou:
         data["atualizadoEm"] = hoje.isoformat()
 
