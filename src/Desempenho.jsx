@@ -99,6 +99,46 @@ export default function Desempenho({ onClose }) {
     persistDados({ ...dados, [key]: { ...atual, lastReview: hoje(), reviewCount: (atual.reviewCount||0)+1 } });
   };
 
+  // ---------- AGENDA DE REVISOES (proximas datas pela curva do esquecimento) ----------
+  const agendaRevisoes = [];
+  todasKeys.forEach(k => {
+    const d = dados[k];
+    if (d && d.lastReview && d.status >= 2) {
+      const rc = Math.min(d.reviewCount||0, INTERVALOS.length-1);
+      const intervalo = INTERVALOS[rc];
+      const prox = new Date(d.lastReview); prox.setDate(prox.getDate() + intervalo);
+      const proxStr = prox.toISOString().slice(0,10);
+      const emDias = diasEntre(hoje(), proxStr);
+      agendaRevisoes.push({ key:k, prox:proxStr, emDias, intervalo, rc });
+    }
+  });
+  agendaRevisoes.sort((a,b) => a.emDias - b.emDias);
+
+  // ---------- PLANO DE ESTUDOS AUTOMATICO ----------
+  // mapeia nome de disciplina (DISC/PESO/stats) -> tem stats de acerto?
+  const statsPlano = carregar("sefaz_stats_disc_v1", {});
+  // 1) revisoes vencidas (prioridade maxima)
+  // 2) disciplinas com pior aproveitamento (pontos fracos)
+  // 3) topicos nao iniciados / em estudo (cobertura)
+  const fracas = Object.entries(statsPlano).map(([disc,s]) => {
+    const tot=(s.ac||0)+(s.er||0); const pct = tot>0?Math.round((s.ac/tot)*100):0;
+    return { disc, pct, tot };
+  }).filter(x => x.tot >= 3 && x.pct < 70).sort((a,b)=>a.pct-b.pct);
+  const naoIniciados = [];
+  const emEstudo = [];
+  ESTRUTURA.forEach(([disc, tps]) => tps.forEach(t => {
+    const k = disc + " | " + t;
+    const st = (dados[k]||{}).status || 0;
+    if (st === 0) naoIniciados.push(k);
+    else if (st === 1) emEstudo.push(k);
+  }));
+  // monta lista priorizada do plano (ate ~6 acoes)
+  const plano = [];
+  revisoesHoje.slice(0,3).forEach(k => plano.push({ tipo:"revisao", txt:k, motivo:"Revisao vencida (curva do esquecimento)" }));
+  fracas.slice(0,3).forEach(f => plano.push({ tipo:"fraca", txt:f.disc, motivo:"Ponto fraco: "+f.pct+"% de acerto em "+f.tot+" questoes" }));
+  emEstudo.slice(0,2).forEach(k => plano.push({ tipo:"estudo", txt:k, motivo:"Em estudo: avance para revisao" }));
+  naoIniciados.slice(0,2).forEach(k => plano.push({ tipo:"novo", txt:k, motivo:"Ainda nao iniciado: comece a cobrir o edital" }));
+
   // ---------- DIARIO + POMODORO ----------
   const [discPomo, setDiscPomo] = useState(ESTRUTURA[0][0]);
   const [foco, setFoco] = useState(true);       // true=foco, false=pausa
@@ -178,7 +218,14 @@ export default function Desempenho({ onClose }) {
     L.push("  Gerado em: " + new Date().toLocaleString("pt-BR"));
     L.push("====================================================");
     L.push("");
-    L.push("1) COBERTURA DO EDITAL");
+    L.push("1) PLANO DE ESTUDOS SUGERIDO");
+    if (plano.length === 0) {
+      L.push("   (sem dados suficientes — marque status e resolva questoes)");
+    } else {
+      plano.forEach(function(p,i){ L.push("   " + (i+1) + ". " + p.txt + "  [" + p.motivo + "]"); });
+    }
+    L.push("");
+    L.push("2) COBERTURA DO EDITAL");
     L.push("   " + pctDominado + "% dominado / " + pctIniciado + "% iniciado");
     L.push("");
     ESTRUTURA.forEach(function(par){
@@ -194,7 +241,7 @@ export default function Desempenho({ onClose }) {
       });
       L.push("");
     });
-    L.push("2) DIARIO DE ESTUDOS");
+    L.push("3) DIARIO DE ESTUDOS");
     L.push("   Total acumulado: " + horasTotal + "h");
     L.push("   Sequencia atual (streak): " + streak + " dia(s)");
     L.push("   Estudo hoje: " + minHoje + " min");
@@ -209,7 +256,7 @@ export default function Desempenho({ onClose }) {
       pares.forEach(function(p){ L.push("      - " + p[0] + ": " + (p[1]/60).toFixed(1) + "h"); });
     }
     L.push("");
-    L.push("3) ACERTOS POR DISCIPLINA");
+    L.push("4) ACERTOS POR DISCIPLINA");
     const statsD = carregar("sefaz_stats_disc_v1", {});
     const ld = Object.entries(statsD).map(function(par){ const s=par[1]; const tot=(s.ac||0)+(s.er||0); const pct=tot>0?Math.round((s.ac/tot)*100):0; return { d:par[0], ac:s.ac||0, er:s.er||0, tot:tot, pct:pct }; }).filter(function(x){ return x.tot>0; }).sort(function(a,b){ return a.pct-b.pct; });
     if (ld.length === 0) {
@@ -218,7 +265,7 @@ export default function Desempenho({ onClose }) {
       ld.forEach(function(x){ L.push("      - " + x.d + ": " + x.pct + "% (" + x.ac + " ac / " + x.er + " er)"); });
     }
     L.push("");
-    L.push("4) QUESTOES ERRADAS (para revisao)");
+    L.push("5) QUESTOES ERRADAS (para revisao)");
     const ek = Object.keys(erradas);
     if (ek.length === 0) {
       L.push("   Nenhuma questao errada registrada. Bom trabalho!");
@@ -262,6 +309,7 @@ export default function Desempenho({ onClose }) {
 
         <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:14,borderBottom:`1px solid ${C.border}`}}>
           <Btn id="vert">Edital Verticalizado</Btn>
+          <Btn id="plano">Plano de Estudos {plano.length>0?`(${plano.length})`:""}</Btn>
           <Btn id="rev">Revisoes de Hoje {revisoesHoje.length>0?`(${revisoesHoje.length})`:""}</Btn>
           <Btn id="diario">Diario & Pomodoro</Btn>
           <Btn id="stats">Acertos por Disciplina</Btn>
@@ -519,6 +567,60 @@ export default function Desempenho({ onClose }) {
                   <div style={{fontSize:13,color:C.green,fontWeight:600}}>✅ Voce ja esta na faixa de seguranca ({aprov}%) com base em {qTot} questoes resolvidas. Mantenha o ritmo e amplie a constancia!</div>
                 ) : (
                   <div style={{fontSize:13,color:C.text}}>Faltam <strong style={{color:corAprov}}>{faltam} pontos percentuais</strong> para a faixa de seguranca. Use a aba <strong>Acertos por Disciplina</strong> para atacar as materias que voce mais erra. ({qTot} questoes resolvidas)</div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+        {aba==="plano" && (() => {
+          const corTipo = { revisao:"#3b82f6", fraca:"#ef4444", estudo:"#f59e0b", novo:"#64748b" };
+          const iconeTipo = { revisao:"🔁", fraca:"⚠️", estudo:"📖", novo:"➕" };
+          return (
+            <div>
+              {/* PLANO AUTOMATICO */}
+              <div style={{background:C.card,border:`1px solid ${C.gold}33`,borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontWeight:700,color:C.goldL,fontSize:14,marginBottom:4}}>🧭 Plano de estudos sugerido para hoje</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Gerado a partir das suas revisoes vencidas, dos pontos fracos (questoes) e da cobertura do edital. Atualiza sozinho conforme voce evolui.</div>
+                {plano.length === 0 ? (
+                  <div style={{fontSize:13,color:C.muted,padding:"10px 0"}}>Sem dados suficientes ainda. Marque o status dos topicos no Edital Verticalizado e resolva questoes nos simulados — o plano aparece aqui automaticamente.</div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {plano.map((p,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,background:C.card2,border:`1px solid ${corTipo[p.tipo]}44`,borderRadius:8,padding:"10px 12px"}}>
+                        <span style={{fontSize:16}}>{iconeTipo[p.tipo]}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,color:C.text,fontWeight:600,marginBottom:2}}>{i+1}. {p.txt}</div>
+                          <div style={{fontSize:11,color:corTipo[p.tipo]}}>{p.motivo}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* AGENDA / NOTIFICACOES DE REVISAO */}
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14}}>
+                <div style={{fontWeight:700,color:C.goldL,fontSize:14,marginBottom:4}}>🔔 Agenda de revisoes (curva do esquecimento)</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Proximas revisoes nos intervalos 1 / 7 / 30 / 90 dias. Marque um topico como Revisao/Dominado no verticalizado para ele entrar aqui.</div>
+                {agendaRevisoes.length === 0 ? (
+                  <div style={{fontSize:13,color:C.muted}}>Nenhuma revisao agendada ainda.</div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                    {agendaRevisoes.slice(0,12).map((a,i)=>{
+                      const venceu = a.emDias <= 0;
+                      const cor = venceu ? C.red : a.emDias <= 2 ? "#f59e0b" : C.green;
+                      const quando = venceu ? "vencida — revise hoje!" : a.emDias === 1 ? "amanha" : "em " + a.emDias + " dias";
+                      const dt = new Date(a.prox);
+                      const dstr = String(dt.getDate()).padStart(2,"0")+"/"+String(dt.getMonth()+1).padStart(2,"0");
+                      return (
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+                          <span style={{width:9,height:9,borderRadius:"50%",background:cor,flexShrink:0}}/>
+                          <span style={{flex:1,fontSize:12,color:C.text}}>{a.key}</span>
+                          <span style={{fontSize:11,color:cor,fontWeight:600,whiteSpace:"nowrap"}}>{dstr} ({quando})</span>
+                          {venceu && <button onClick={()=>marcarRevisado(a.key)} style={{background:C.blue,color:"#fff",border:"none",borderRadius:5,padding:"4px 9px",cursor:"pointer",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>✓ revisei</button>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </div>
