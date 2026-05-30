@@ -207,7 +207,7 @@
       "Google": {
         "ok": false,
         "hits": 0,
-        "erro": "HTTP Error 403: Forbidden"
+        "erro": "HTTP 403: forbidden This project does not have the access to Custom Search JSON API."
       }
     }
   }
