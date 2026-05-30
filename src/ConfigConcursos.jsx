@@ -93,13 +93,41 @@ const BANCAS = [
   {id:"pci", n:"PCI Concursos", cor:"#0d9488", url:q=>`https://www.pciconcursos.com.br/concursos/${encodeURIComponent(q)}`},
 ];
 
+const K_CFG = "sefaz_config_concursos_v1";
+function carregarCfg(){ try{ const r=localStorage.getItem(K_CFG); return r?JSON.parse(r):null; }catch(e){ return null; } }
+
 export default function ConfigConcursos({ onClose }) {
-  const [area, setArea] = useState(null);
-  const [escol, setEscol] = useState(null);
-  const [esfera, setEsfera] = useState(null);
-  const [uf, setUf] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [horasDia, setHorasDia] = useState(3);
+  const _sv = carregarCfg() || {};
+  const [area, setArea] = useState(_sv.area || null);
+  const [escol, setEscol] = useState(_sv.escol || null);
+  const [esfera, setEsfera] = useState(_sv.esfera || null);
+  const [uf, setUf] = useState(_sv.uf || "");
+  const [cidade, setCidade] = useState(_sv.cidade || "");
+  const [horasDia, setHorasDia] = useState(_sv.horasDia || 3);
+  const [salvo, setSalvo] = useState(false);
+
+  // Salva as configuracoes e registra um aviso para o sino de notificacoes
+  const salvarConfig = () => {
+    const areaNome = area ? (AREAS.find(x=>x.id===area)||{}).n : null;
+    const esferaNome = esfera ? (ESFERAS.find(x=>x.id===esfera)||{}).n : null;
+    const escolNome = escol ? (ESCOLARIDADE.find(x=>x.id===escol)||{}).n : null;
+    const cfg = {
+      area, escol, esfera, uf, cidade, horasDia,
+      areas: areaNome ? [areaNome] : [],
+      atualizadoEm: new Date().toISOString(),
+    };
+    try { localStorage.setItem(K_CFG, JSON.stringify(cfg)); } catch(e) {}
+    // registra notificacao de "configuracao salva"
+    try {
+      const raw = localStorage.getItem("sefaz_notif_log_v1");
+      const log = raw ? JSON.parse(raw) : [];
+      const resumo = [areaNome, escolNome, esferaNome, (esfera==="municipal"&&cidade)?cidade:(uf||null)].filter(Boolean).join(" · ") || "preferencias gerais";
+      log.unshift({ id:"cfg:"+Date.now(), tipo:"config", titulo:"Configuracoes salvas", texto:"Busca de concursos atualizada: "+resumo+". Voce sera avisado de novidades nessas areas.", data:new Date().toISOString() });
+      localStorage.setItem("sefaz_notif_log_v1", JSON.stringify(log.slice(0,30)));
+    } catch(e) {}
+    setSalvo(true);
+    setTimeout(()=>setSalvo(false), 2500);
+  };
 
   // Monta a query de busca
   const montarQuery = () => {
@@ -269,7 +297,10 @@ export default function ConfigConcursos({ onClose }) {
           </p>
         </Secao>
 
-        <button onClick={onClose} style={{width:"100%",background:C.gold,color:"#000",border:"none",borderRadius:8,padding:"12px",cursor:"pointer",fontWeight:700,fontSize:14,marginTop:6}}>
+        <button onClick={salvarConfig} style={{width:"100%",background:salvo?C.green:C.gold,color:"#000",border:"none",borderRadius:8,padding:"12px",cursor:"pointer",fontWeight:700,fontSize:14,marginTop:6,transition:"background 0.2s"}}>
+          {salvo ? "✓ Configuracoes salvas — voce sera notificado" : "💾 Salvar configuracoes"}
+        </button>
+        <button onClick={onClose} style={{width:"100%",background:"transparent",color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:"11px",cursor:"pointer",fontWeight:700,fontSize:13,marginTop:8}}>
           Fechar
         </button>
       </div>

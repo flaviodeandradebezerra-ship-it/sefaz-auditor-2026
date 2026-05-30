@@ -65,13 +65,21 @@ function gerarNotificacoes(){
       texto:"Acompanhe os detalhes na aba Meus Editais." });
   });
 
-  // 5) CONCURSOS por area de interesse (configuracoes)
+  // 5) CONCURSOS por area de interesse (configuracoes salvas)
   const cfgConc = carregar("sefaz_config_concursos_v1", null);
   if (cfgConc && Array.isArray(cfgConc.areas) && cfgConc.areas.length){
-    N.push({ id:"concursos:"+cfgConc.areas.join(","), tipo:"concurso", cor:C.purple, icone:"🔎",
-      titulo:"Busca de concursos ativa",
-      texto:"Areas monitoradas: "+cfgConc.areas.join(", ")+". Veja novidades em Configuracoes." });
+    const detalhe = [cfgConc.esfera, cfgConc.cidade || cfgConc.uf].filter(Boolean).join(" / ");
+    N.push({ id:"concursos:"+cfgConc.areas.join(",")+":"+(cfgConc.atualizadoEm||""), tipo:"concurso", cor:C.purple, icone:"🔎",
+      titulo:"Monitorando concursos: "+cfgConc.areas.join(", "),
+      texto:"Area de interesse"+(detalhe?(" ("+detalhe+")"):"")+" configurada. Avisaremos de novidades. Veja em Configuracoes." });
   }
+
+  // 5b) LOG de configuracoes salvas pelo usuario (cada salvar gera um aviso)
+  const cfgLog = carregar("sefaz_notif_log_v1", []);
+  (cfgLog||[]).forEach(item => {
+    if (item && item.id) N.push({ id:item.id, tipo:item.tipo||"config", cor:C.green, icone:"⚙️",
+      titulo:item.titulo||"Configuracao salva", texto:item.texto||"" });
+  });
 
   // 6) DICA fixa de boas-vindas/uso (sempre presente; some apos vista)
   N.push({ id:"dica:leis-fontes", tipo:"info", cor:C.gold, icone:"⚖️",
