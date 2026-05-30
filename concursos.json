@@ -141,8 +141,74 @@
   "ultimaVerificacao": "2026-05-30",
   "diagnostico": {
     "ultimaColeta": "2026-05-30",
-    "qd_bruto": 0,
-    "qd_fiscais": 0,
-    "erro": null
+    "totalDetectado": 0,
+    "fontes": {
+      "QD-DOM": {
+        "ok": true,
+        "hits": 0,
+        "bruto": 0,
+        "erro": null
+      },
+      "DOU": {
+        "ok": false,
+        "hits": 0,
+        "erro": "HTTP Error 502: Bad Gateway"
+      },
+      "DOE-CE": {
+        "ok": true,
+        "hits": 0,
+        "erro": null
+      },
+      "FCC": {
+        "ok": true,
+        "hits": 0,
+        "erro": null
+      },
+      "CEBRASPE": {
+        "ok": true,
+        "hits": 0,
+        "erro": null
+      },
+      "FGV": {
+        "ok": true,
+        "hits": 0,
+        "erro": null
+      },
+      "VUNESP": {
+        "ok": false,
+        "hits": 0,
+        "erro": "HTTP Error 403: Forbidden"
+      },
+      "IDECAN": {
+        "ok": false,
+        "hits": 0,
+        "erro": "HTTP Error 404: Not Found"
+      },
+      "Gran": {
+        "ok": false,
+        "hits": 0,
+        "erro": "HTTP Error 404: Not Found"
+      },
+      "Estrategia": {
+        "ok": false,
+        "hits": 0,
+        "erro": "HTTP Error 404: Not Found"
+      },
+      "Qconcursos": {
+        "ok": false,
+        "hits": 0,
+        "erro": "HTTP Error 403: Forbidden"
+      },
+      "TecConcursos": {
+        "ok": false,
+        "hits": 0,
+        "erro": "HTTP Error 405: Not Allowed"
+      },
+      "Google": {
+        "ok": false,
+        "hits": 0,
+        "erro": "sem GOOGLE_API_KEY/GOOGLE_CX (desativado)"
+      }
+    }
   }
 }
