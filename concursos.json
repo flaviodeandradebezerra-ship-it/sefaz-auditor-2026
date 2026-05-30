@@ -200,9 +200,9 @@
         "erro": "HTTP Error 403: Forbidden"
       },
       "TecConcursos": {
-        "ok": false,
+        "ok": true,
         "hits": 0,
-        "erro": "HTTP Error 405: Not Allowed"
+        "erro": null
       },
       "Google": {
         "ok": false,
