@@ -147,6 +147,17 @@ export default function Desempenho({ onClose }) {
   const porDisc = {};
   diario.forEach(x => { porDisc[x.disc] = (porDisc[x.disc]||0) + x.min; });
   const totalMin = Object.values(porDisc).reduce((a,b)=>a+b,0);
+  // minutos da semana corrente (ultimos 7 dias, incluindo hoje)
+  const seteDiasAtras = (() => { const dt=new Date(); dt.setDate(dt.getDate()-6); return dt.toISOString().slice(0,10); })();
+  const minSemana = diario.filter(x => x.data >= seteDiasAtras).reduce((s,x)=>s+x.min,0);
+  // meta semanal (config do usuario, em minutos; default 600 = 10h)
+  const cfg = carregar("sefaz_metas_v1", { semanalMin: 600 });
+  const metaSemanalMin = cfg.semanalMin || 600;
+  const salvarMetaSemanal = (min) => { salvar("sefaz_metas_v1", { ...cfg, semanalMin: min }); setDados({...dados}); };
+  // questoes resolvidas (para comparativo de aprovacao)
+  const statsAll = carregar("sefaz_stats_disc_v1", {});
+  let qAc=0, qTot=0; Object.values(statsAll).forEach(s=>{ qAc+=(s.ac||0); qTot+=(s.ac||0)+(s.er||0); });
+  const aprov = qTot>0 ? Math.round((qAc/qTot)*100) : 0;
 
   const Btn = ({id, children}) => (
     <button onClick={()=>setAba(id)} style={{
@@ -187,6 +198,8 @@ export default function Desempenho({ onClose }) {
     L.push("   Total acumulado: " + horasTotal + "h");
     L.push("   Sequencia atual (streak): " + streak + " dia(s)");
     L.push("   Estudo hoje: " + minHoje + " min");
+    L.push("   Estudo na semana (7 dias): " + Math.floor(minSemana/60) + "h" + (minSemana%60) + "m de meta de " + Math.floor(metaSemanalMin/60) + "h");
+    L.push("   Aproveitamento geral em questoes: " + aprov + "% (meta de seguranca: 70%)");
     L.push("");
     L.push("   Horas por disciplina:");
     const pares = Object.entries(porDisc).sort(function(a,b){ return b[1]-a[1]; });
@@ -252,6 +265,7 @@ export default function Desempenho({ onClose }) {
           <Btn id="rev">Revisoes de Hoje {revisoesHoje.length>0?`(${revisoesHoje.length})`:""}</Btn>
           <Btn id="diario">Diario & Pomodoro</Btn>
           <Btn id="stats">Acertos por Disciplina</Btn>
+          <Btn id="metas">Metas & Aprovacao</Btn>
         </div>
 
         {/* ============ VERTICALIZADO ============ */}
@@ -452,6 +466,61 @@ export default function Desempenho({ onClose }) {
                   </div>
                 </div>
               )}
+            </div>
+          );
+        })()}
+        {aba==="metas" && (() => {
+          const pctSem = metaSemanalMin>0 ? Math.min(100, Math.round((minSemana/metaSemanalMin)*100)) : 0;
+          const corSem = pctSem>=100?C.green:pctSem>=60?"#f59e0b":C.red;
+          const opcoes = [300,600,900,1200,1500];
+          // meta de aprovacao FCC: tipicamente ~70% de aproveitamento como referencia de seguranca
+          const META_APROV = 70;
+          const corAprov = aprov>=META_APROV?C.green:aprov>=50?"#f59e0b":C.red;
+          const faltam = Math.max(0, META_APROV - aprov);
+          return (
+            <div>
+              {/* META SEMANAL DE ESTUDO */}
+              <div style={{background:C.card,border:`1px solid ${C.gold}33`,borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontWeight:700,color:C.goldL,fontSize:14,marginBottom:8}}>🎯 Meta semanal de estudo</div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <div style={{flex:1,height:14,background:C.border,borderRadius:7,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${pctSem}%`,background:corSem,transition:"width 0.3s"}}/>
+                  </div>
+                  <span style={{fontSize:15,fontWeight:700,color:corSem,minWidth:44,textAlign:"right"}}>{pctSem}%</span>
+                </div>
+                <div style={{fontSize:12,color:C.muted,marginBottom:10}}>
+                  {Math.floor(minSemana/60)}h{minSemana%60}m estudadas nos ultimos 7 dias · meta de {Math.floor(metaSemanalMin/60)}h
+                  {pctSem>=100 ? " — meta batida! 🎉" : " — faltam " + Math.floor((metaSemanalMin-minSemana)/60) + "h" + ((metaSemanalMin-minSemana)%60) + "m"}
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {opcoes.map(o=>(
+                    <button key={o} onClick={()=>salvarMetaSemanal(o)}
+                      style={{background:metaSemanalMin===o?C.gold:C.card2,color:metaSemanalMin===o?"#000":C.text,border:`1px solid ${metaSemanalMin===o?C.gold:C.border}`,borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>
+                      {o/60}h/sem
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* COMPARATIVO VS META DE APROVACAO */}
+              <div style={{background:C.card,border:`1px solid ${corAprov}55`,borderRadius:10,padding:14}}>
+                <div style={{fontWeight:700,color:C.goldL,fontSize:14,marginBottom:4}}>🏁 Sua evolucao vs. meta de aprovacao</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Referencia de seguranca: <strong style={{color:C.text}}>{META_APROV}%</strong> de aproveitamento (provas FCC para fiscais costumam exigir alto acerto na ampla concorrencia).</div>
+                <div style={{position:"relative",height:26,background:C.border,borderRadius:13,overflow:"hidden",marginBottom:6}}>
+                  <div style={{height:"100%",width:`${aprov}%`,background:corAprov,transition:"width 0.3s"}}/>
+                  <div style={{position:"absolute",top:0,bottom:0,left:`${META_APROV}%`,width:2,background:C.gold}}/>
+                  <div style={{position:"absolute",top:0,bottom:0,left:0,right:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:C.text}}>{aprov}% de acerto</div>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,marginBottom:10}}>
+                  <span>0%</span><span style={{color:C.gold}}>meta {META_APROV}%</span><span>100%</span>
+                </div>
+                {qTot===0 ? (
+                  <div style={{fontSize:12,color:C.muted}}>Resolva questoes nos simulados para acompanhar sua evolucao rumo a meta.</div>
+                ) : aprov>=META_APROV ? (
+                  <div style={{fontSize:13,color:C.green,fontWeight:600}}>✅ Voce ja esta na faixa de seguranca ({aprov}%) com base em {qTot} questoes resolvidas. Mantenha o ritmo e amplie a constancia!</div>
+                ) : (
+                  <div style={{fontSize:13,color:C.text}}>Faltam <strong style={{color:corAprov}}>{faltam} pontos percentuais</strong> para a faixa de seguranca. Use a aba <strong>Acertos por Disciplina</strong> para atacar as materias que voce mais erra. ({qTot} questoes resolvidas)</div>
+                )}
+              </div>
             </div>
           );
         })()}
