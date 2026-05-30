@@ -17,7 +17,7 @@ FONTES (filtradas pelas PALAVRAS-CHAVE da area fiscal):
 
 A curadoria manual (itens sem prefixo de fonte automatica) e sempre preservada.
 """
-import json, os, re, sys, html, urllib.parse, urllib.request, hashlib
+import json, os, re, sys, html, urllib.parse, urllib.request, urllib.error, hashlib
 from datetime import date, datetime, timedelta
 import xml.etree.ElementTree as ET
 
@@ -188,8 +188,21 @@ def coletar_google(diag):
         try:
             data = _get_json(url)
             info["ok"] = True
+        except urllib.error.HTTPError as e:
+            try:
+                corpo = e.read().decode("utf-8", errors="ignore")
+                err = json.loads(corpo).get("error", {})
+                msg = err.get("message", "")
+                reason = ""
+                errs = err.get("errors") or []
+                if errs:
+                    reason = errs[0].get("reason", "")
+                info["erro"] = f"HTTP {e.code}: {reason or ''} {msg}"[:250]
+            except Exception:
+                info["erro"] = f"HTTP {e.code}"
+            continue
         except Exception as e:
-            info["erro"] = str(e)[:120]
+            info["erro"] = str(e)[:160]
             continue
         for it in (data.get("items") or []):
             link = it.get("link", "")
