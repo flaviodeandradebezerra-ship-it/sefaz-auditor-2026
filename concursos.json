@@ -487,12 +487,181 @@
       "data": "2026-05-30",
       "fonte": "https://www.qconcursos.com/concursos/banco-do-brasil",
       "obs": "No cenário atual, não há concurso com inscrições abertas. Para os próximos certames, há previsão de concurso em 2026, mas a banca ainda não foi [...]"
+    },
+    {
+      "id": "src:tavily:0931fc2d19",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concurso PC SP 2026: Novos editais confirmados!",
+      "area": "policial",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.novaconcursos.com.br/portal/concursos/concurso-policia-civil-sp",
+      "obs": "Delegado: 552 vagas; Médico Legista: 116 vagas; Perito Criminal: 249 vagas; Investigador de Polícia: 1.250 vagas; Escrivão de Polícia: 1.333 vagas. As [...]"
+    },
+    {
+      "id": "src:tavily:af1ea1e1f5",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos policiais previstos para maio de 2026: veja editais confirmados e seleções em preparação - Blog Magistrar Educacional",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://magistrarcursos.com.br/blog/concursos-policiais-previstos-para-maio-de-2026-veja-editais-confirmados-e-selecoes-em-preparacao",
+      "obs": "Início › Notícias › Concursos policiais previstos para maio de 2026: veja editais confirmados e seleções em preparação. # Concursos policiais previstos para maio de 2026: veja edit [...]"
+    },
+    {
+      "id": "src:tavily:6382a62788",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos 2026: veja os editais mais aguardados para as polícias no Brasil",
+      "area": "tribunais",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://ceisc.com.br/blog/post/concursos-2026-veja-os-editais-mais-aguardados-para-as-policias-no-brasil",
+      "obs": "# Concursos 2026: veja os editais mais aguardados para as polícias no Brasil. Blog do Ceisc atualiza o status sobre os possíveis (e prováveis) editais para as forças de segurança a [...]"
+    },
+    {
+      "id": "src:tavily:820e94655c",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos Policiais 2026: veja editais abertos e previstos | Folha Dirigida",
+      "area": "policial",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://folha.qconcursos.com/n/concursos-policiais",
+      "obs": "# Concursos Policiais 2026: confira os editais abertos e previstos. ## Confira o panorama dos concursos policiais previstos e confirmados para o ano de 2026 em todo o país! Com mil [...]"
+    },
+    {
+      "id": "src:tavily:595d5c675e",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos Delegado 2026: guia completo de oportunidades",
+      "area": "policial",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-delegado",
+      "obs": "Em abril de 2026, a governadora do Acre anunciou um novo edital para a Polícia Civil que poderá ofertar até 139 vagas para diversos cargos, [...]"
+    },
+    {
+      "id": "src:tavily:342cda921f",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos Juiz 2026: veja editais previstos! Até R$ 37 mil",
+      "area": "tribunais",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-juiz",
+      "obs": "As inscrições do concurso TJ MG Juiz foram encerradas em 22 de abril de 2026. O edital oferta 103 vagas para Juiz Substituto, com remuneração [...]"
+    },
+    {
+      "id": "src:tavily:ee971b59af",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos para Juiz 2026: Tribunais de Justiça, TRF e TRT",
+      "area": "tribunais",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://magistrarcursos.com.br/blog/concursos-juiz",
+      "obs": "Concurso TJ BA Juiz 2026 – Tribunal de Justiça da Bahia ... O concurso para Juiz do TJBA abriu inscrições entre os dias 02 de março e 02 de abril. [...]"
+    },
+    {
+      "id": "src:tavily:5d82e213ad",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "[PDF] Edital-concurso-juiz-2026.pdf - TJBA",
+      "area": "magistratura",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.tjba.jus.br/portal/wp-content/uploads/2026/01/Edital-concurso-juiz-2026.pdf",
+      "obs": "V - Aprovação em con-curso público, desde que não tenha sido utilizado para pontuar no inciso I V.a) Judicatura (Juiz/Pretor), Ministério Público, Defensoria Pública, Advocacia--Ge [...]"
+    },
+    {
+      "id": "src:tavily:318c72912c",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos para Juiz 2026: editais abertos, previstos e salários",
+      "area": "magistratura",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://noticias.decorandoaleiseca.com.br/concursos-para-juiz-2026-editais-abertos-previstos-e-salarios",
+      "obs": "A aprovação no ENAM é exigida em todos os concursos de magistratura do país. A 5ª edição do exame tem prova marcada para 7 de junho de 2026, das [...]"
+    },
+    {
+      "id": "src:tavily:c4c5ab8897",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "O edital do Concurso do Tribunal de Justiça do Rio Grande do Sul ...",
+      "area": "tribunais",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.instagram.com/p/DVMmZJXjxNg",
+      "obs": "Concurso TJ-RJ (Juiz) — 2ª fase com datas definidas. 12 e 13 de julho de 2026 ✍️ Provas discursivas (questões + sentenças cível e penal) [...]"
+    },
+    {
+      "id": "src:tavily:f6d1d18cd1",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos Saúde 2026: confira vagas e editais previstos!",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.estrategiaconcursos.com.br/blog/concursos-area-da-saude",
+      "obs": "# Concursos Saúde 2026: confira vagas e editais previstos! ***Acompanhe os editais e últimas notícias dos Concursos Saúde previstos para os próximos meses*** ***de 2026***. Acesse  [...]"
+    },
+    {
+      "id": "src:tavily:ec3327c147",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "PROCESSO SELETIVO ABERTO – EDITAL 02/2026 A Secretaria ...",
+      "area": "saude",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.instagram.com/p/DXcZuBzEcaD",
+      "obs": "... Técnico de Enfermagem e Enfermeiro. 🗓️ Período de inscrição: 24/04/2026 a 01/05/2026 Inscrição online pelo link disponível no edital O [...]"
+    },
+    {
+      "id": "src:tavily:c0fd22d37f",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos Saúde 2026: vagas previstas e remunerações atrativas!",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-saude",
+      "obs": "Concursos Saúde em 2026 terá vagas para área da saúde em diversas partes do Brasil, desde militares até instituições de saúde. Entenda! [...]"
     }
   ],
   "ultimaVerificacao": "2026-05-30",
   "diagnostico": {
     "ultimaColeta": "2026-05-30",
-    "totalDetectado": 20,
+    "totalDetectado": 55,
     "fontes": {
       "QD-DOM": {
         "ok": true,
@@ -533,7 +702,7 @@
       "IDECAN": {
         "ok": false,
         "hits": 0,
-        "erro": "HTTP Error 403: Forbidden"
+        "erro": "HTTP Error 404: Not Found"
       },
       "Gran": {
         "ok": false,
@@ -551,9 +720,9 @@
         "erro": "HTTP Error 403: Forbidden"
       },
       "TecConcursos": {
-        "ok": true,
+        "ok": false,
         "hits": 0,
-        "erro": null
+        "erro": "HTTP Error 405: Not Allowed"
       },
       "Google": {
         "ok": false,
@@ -562,13 +731,20 @@
       },
       "Tavily": {
         "ok": true,
-        "hits": 20,
+        "hits": 55,
         "erro": null,
         "porArea": {
           "fiscal": 5,
           "tribunais": 5,
           "controle": 5,
-          "bancos": 5
+          "bancos": 5,
+          "policial": 5,
+          "magistratura": 5,
+          "saude": 5,
+          "conselhos": 5,
+          "agencias": 5,
+          "legislativo": 5,
+          "administrativa": 5
         }
       }
     }
