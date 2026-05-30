@@ -67,56 +67,92 @@ function temDiscursiva(t) {
 // Detecta disciplinas e topicos do conteudo programatico
 function analisarConteudo(texto) {
   const t = texto.replace(/\r/g, " ").replace(/\u00a0/g, " ");
-  // Palavras que tipicamente nomeiam disciplinas
+  // Disciplinas ordenadas: as MAIS especificas primeiro (evita "Portugues" engolir "Lingua Portuguesa")
   const discKW = [
-    "LINGUA PORTUGUESA","PORTUGUES","REDACAO OFICIAL","RACIOCINIO LOGICO",
-    "MATEMATICA","ESTATISTICA","INFORMATICA","NOCOES DE INFORMATICA",
-    "DIREITO CONSTITUCIONAL","DIREITO ADMINISTRATIVO","DIREITO TRIBUTARIO",
-    "DIREITO CIVIL","DIREITO PENAL","DIREITO PROCESSUAL","DIREITO DO TRABALHO",
-    "DIREITO PREVIDENCIARIO","DIREITO FINANCEIRO","DIREITO EMPRESARIAL",
-    "CONTABILIDADE","CONTABILIDADE PUBLICA","CONTABILIDADE GERAL",
-    "AUDITORIA","ADMINISTRACAO","ADMINISTRACAO PUBLICA","ADMINISTRACAO FINANCEIRA",
-    "ECONOMIA","ATUALIDADES","LEGISLACAO","ETICA","GESTAO DE PESSOAS",
-    "CONHECIMENTOS ESPECIFICOS","CONHECIMENTOS GERAIS","CONHECIMENTOS BASICOS",
-    "LEGISLACAO TRIBUTARIA","FINANCAS PUBLICAS","TECNOLOGIA DA INFORMACAO",
-    "ARQUIVOLOGIA","SAUDE PUBLICA","ENFERMAGEM","FARMACOLOGIA",
+    "LINGUA PORTUGUESA","REDACAO OFICIAL","RACIOCINIO LOGICO","RACIOCINIO LOGICO-MATEMATICO",
+    "NOCOES DE INFORMATICA","TECNOLOGIA DA INFORMACAO","MATEMATICA FINANCEIRA","MATEMATICA",
+    "ESTATISTICA","DIREITO CONSTITUCIONAL","DIREITO ADMINISTRATIVO","DIREITO TRIBUTARIO",
+    "DIREITO CIVIL","DIREITO PENAL","DIREITO PROCESSUAL CIVIL","DIREITO PROCESSUAL PENAL",
+    "DIREITO PROCESSUAL","DIREITO DO TRABALHO","DIREITO PREVIDENCIARIO","DIREITO FINANCEIRO",
+    "DIREITO EMPRESARIAL","CONTABILIDADE PUBLICA","CONTABILIDADE GERAL","CONTABILIDADE DE CUSTOS",
+    "CONTABILIDADE AVANCADA","CONTABILIDADE","AUDITORIA GOVERNAMENTAL","AUDITORIA",
+    "ADMINISTRACAO PUBLICA","ADMINISTRACAO FINANCEIRA E ORCAMENTARIA","ADMINISTRACAO FINANCEIRA",
+    "ADMINISTRACAO GERAL","ADMINISTRACAO","ECONOMIA","FINANCAS PUBLICAS","LEGISLACAO TRIBUTARIA",
+    "LEGISLACAO ESPECIFICA","LEGISLACAO","ATUALIDADES","ETICA NO SERVICO PUBLICO","ETICA",
+    "GESTAO DE PESSOAS","GESTAO PUBLICA","ARQUIVOLOGIA","SAUDE PUBLICA","ENFERMAGEM",
+    "FARMACOLOGIA","PORTUGUES","INFORMATICA","CONHECIMENTOS ESPECIFICOS","CONHECIMENTOS GERAIS",
+    "CONHECIMENTOS BASICOS",
   ];
-  // Normalizar para comparar sem acento
   const semAcento = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
   const tn = semAcento(t);
 
-  // Encontrar ocorrencias das disciplinas
+  // Marca intervalos ja cobertos por uma disciplina mais especifica (evita duplicar)
+  const ocupado = new Array(tn.length).fill(false);
   const achados = [];
   for (const kw of discKW) {
     let idx = tn.indexOf(kw);
     while (idx !== -1) {
-      achados.push({ kw, idx });
+      // se essa posicao ja foi capturada por uma kw mais especifica, ignora
+      let livre = true;
+      for (let j = idx; j < idx + kw.length; j++) { if (ocupado[j]) { livre = false; break; } }
+      if (livre) {
+        achados.push({ kw, idx });
+        for (let j = idx; j < idx + kw.length; j++) ocupado[j] = true;
+      }
       idx = tn.indexOf(kw, idx + kw.length);
     }
   }
-  // Ordenar por posicao e remover sobreposicoes proximas
   achados.sort((a, b) => a.idx - b.idx);
+
   const disc = [];
-  const vistos = new Set();
   for (let i = 0; i < achados.length; i++) {
     const a = achados[i];
-    if (vistos.has(a.kw)) continue;
-    vistos.add(a.kw);
-    const prox = achados[i + 1] ? achados[i + 1].idx : Math.min(a.idx + 1200, t.length);
+    const prox = achados[i + 1] ? achados[i + 1].idx : Math.min(a.idx + 1400, t.length);
     const trecho = t.slice(a.idx, prox);
-    // Extrair topicos: dividir por ; ou numeracao
     let topicos = trecho
-      .replace(/^[^:]*:?/, "")  // remove o nome da disciplina ate o primeiro :
-      .split(/;|\.\s+\d+\.?\d*\s|\u2022|\n/)
-      .map(s => s.trim())
-      .filter(s => s.length > 8 && s.length < 180)
-      .slice(0, 12);
-    disc.push({
-      nome: a.kw.split(" ").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" "),
-      topicos: topicos.length ? topicos : ["Conteudo programatico (ver edital completo)"],
-    });
+      .replace(/^[^:]*:?/, "")
+      .split(/;|\.\s+\d+\.?\d*\s|\u2022|\n|\d+\.\d+|\s\d+\s/)
+      .map(s => s.replace(/^\d+[.)\s-]*/, "").trim())
+      .filter(s => s.length > 6 && s.length < 180)
+      .filter((s, idx, arr) => arr.indexOf(s) === idx) // remove duplicatas
+      .slice(0, 15);
+    const nome = a.kw.split(" ").map(w => w.length <= 2 ? w.toLowerCase() : w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+    // so adiciona se achou topicos reais (descarta disciplina "fantasma" vazia)
+    if (topicos.length > 0) {
+      disc.push({ nome, topicos });
+    }
   }
   return disc;
+}
+
+// ---- Gerador de PLANO DE ESTUDO INTELIGENTE (sem inventar dados; usa o proprio edital) ----
+function gerarPlanoInteligente(disc, horasDia, dataProva) {
+  if (!disc || disc.length === 0) return null;
+  const totalTopicos = disc.reduce((s, d) => s + d.topicos.length, 0) || 1;
+  const horasSemana = Math.max(1, horasDia) * 7;
+  const linhas = disc.map(d => {
+    const peso = d.topicos.length / totalTopicos;
+    return {
+      nome: d.nome,
+      topicos: d.topicos.length,
+      pesoPct: Math.round(peso * 100),
+      horasSemana: Math.round(peso * horasSemana * 10) / 10,
+    };
+  });
+  linhas.sort((a, b) => b.topicos - a.topicos);
+  let diasAteProva = null, semanasAteProva = null, horasTotaisDisponiveis = null, ritmo = null;
+  if (dataProva) {
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const dp = new Date(dataProva + "T00:00:00");
+    if (!isNaN(dp.getTime())) {
+      diasAteProva = Math.max(0, Math.round((dp - hoje) / 86400000));
+      semanasAteProva = Math.max(1, Math.ceil(diasAteProva / 7));
+      horasTotaisDisponiveis = diasAteProva * Math.max(1, horasDia);
+      ritmo = Math.ceil(totalTopicos / semanasAteProva);
+    }
+  }
+  return { linhas, totalTopicos, totalDisciplinas: disc.length, horasSemana,
+           diasAteProva, semanasAteProva, horasTotaisDisponiveis, ritmo };
 }
 
 // ---- Fontes de estudo por topico ----
@@ -136,15 +172,17 @@ function linksEstudo(termo, banca) {
 function EstudoEdital({ ed, onVoltar }) {
   const [tab, setTab] = useState("visao");
   const [horas, setHoras] = useState(3);
+  const [dataProva, setDataProva] = useState(ed.prova || "");
   const [topAberto, setTopAberto] = useState(null);
 
   const disc = ed.disciplinas || [];
+  const plano = gerarPlanoInteligente(disc, horas, dataProva);
   const totalTopicos = disc.reduce((s, d) => s + d.topicos.length, 0);
   const blocosDia = Math.max(1, Math.round(horas / 1.5));
   const semanas = Math.max(1, Math.ceil(totalTopicos / (blocosDia * 7)));
 
   const TABS = [
-    ["visao","Visao Geral"], ["disc","Disciplinas"], ["crono","Cronograma"],
+    ["visao","Visao Geral"], ["plano","🎯 Plano Inteligente"], ["disc","Disciplinas"], ["crono","Cronograma"],
     ["banco","Banco de Questoes"],
     ...(ed.discursiva ? [["disc2","Discursivas"]] : []),
     ["estrat","Estrategia da Banca"], ["flash","Resumos e Flashcards"],
@@ -213,6 +251,85 @@ function EstudoEdital({ ed, onVoltar }) {
               A plataforma extraiu a estrutura do seu edital. Use as abas acima: veja as <strong>Disciplinas</strong> e topicos detectados, monte seu <strong>Cronograma</strong>, e em cada topico use os botoes de <strong>Resumos/Flashcards</strong>, <strong>Banco de Questoes</strong> e <strong>Simulado</strong> — que abrem buscas filtradas direto nas fontes (Gran, TEC, QConcursos, Estrategia) ja com o nome da banca <strong>{ed.banca}</strong>.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* PLANO INTELIGENTE */}
+      {tab==="plano" && (
+        <div>
+          <div style={{background:`linear-gradient(135deg, ${C.gold}18, ${C.card})`,border:`1px solid ${C.gold}55`,borderRadius:10,padding:16,marginBottom:14}}>
+            <h3 style={{color:C.goldL,margin:"0 0 6px"}}>🎯 Plano de Estudo Inteligente</h3>
+            <p style={{color:C.text,fontSize:12,lineHeight:1.7,margin:0}}>
+              Gerado automaticamente a partir do <strong>seu edital</strong>: ordem de estudo priorizada, tempo por disciplina proporcional a carga de topicos e cronograma ate a prova. Ajuste suas horas/dia e a data da prova abaixo.
+            </p>
+          </div>
+
+          {/* Controles */}
+          <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:14}}>
+            <div style={{flex:1,minWidth:160,background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:12}}>
+              <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Horas de estudo por dia: <strong style={{color:C.gold}}>{horas}h</strong></div>
+              <input type="range" min="1" max="10" value={horas} onChange={e=>setHoras(Number(e.target.value))} style={{width:"100%",accentColor:C.gold}}/>
+            </div>
+            <div style={{flex:1,minWidth:160,background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:12}}>
+              <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Data da prova</div>
+              <input type="date" value={dataProva} onChange={e=>setDataProva(e.target.value)}
+                style={{width:"100%",background:C.card2,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"7px 10px",fontSize:13}}/>
+            </div>
+          </div>
+
+          {!plano && <p style={{color:C.muted,fontSize:13}}>Nenhuma disciplina detectada para montar o plano. Cole o conteudo programatico do edital na aba Meus Editais.</p>}
+
+          {plano && (
+            <>
+              {/* Resumo numerico (so dados reais) */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:14}}>
+                {[
+                  ["Disciplinas", plano.totalDisciplinas],
+                  ["Topicos no edital", plano.totalTopicos],
+                  ["Horas/semana", plano.horasSemana+"h"],
+                  ...(plano.diasAteProva!=null ? [
+                    ["Dias ate a prova", plano.diasAteProva],
+                    ["Horas disponiveis", plano.horasTotaisDisponiveis+"h"],
+                    ["Ritmo necessario", plano.ritmo+" top/sem"],
+                  ] : []),
+                ].map(([l,v])=>(
+                  <div key={l} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px"}}>
+                    <div style={{fontSize:17,fontWeight:700,color:C.gold}}>{v}</div>
+                    <div style={{fontSize:11,color:C.muted}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ordem priorizada + distribuicao de tempo */}
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontWeight:700,color:C.gold,fontSize:13,marginBottom:4}}>Ordem de estudo priorizada</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Disciplinas com mais topicos recebem mais tempo (maior peso na prova). Estude de cima para baixo.</div>
+                {plano.linhas.map((l,i)=>(
+                  <div key={l.nome} style={{marginBottom:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                      <span style={{fontSize:13,color:C.text,fontWeight:600}}>
+                        <span style={{display:"inline-block",width:20,height:20,lineHeight:"20px",textAlign:"center",background:C.gold,color:"#000",borderRadius:"50%",fontSize:11,fontWeight:700,marginRight:8}}>{i+1}</span>
+                        {l.nome}
+                      </span>
+                      <span style={{fontSize:11,color:C.muted}}>{l.topicos} top · {l.horasSemana}h/sem</span>
+                    </div>
+                    <div style={{height:8,background:C.card2,borderRadius:4,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:l.pesoPct+"%",background:`linear-gradient(90deg,${C.gold},${C.goldL})`,borderRadius:4}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {plano.diasAteProva!=null && plano.diasAteProva>0 && (
+                <div style={{background:C.card,border:`1px solid ${C.green}44`,borderRadius:10,padding:14}}>
+                  <div style={{fontWeight:700,color:C.green,fontSize:13,marginBottom:6}}>📅 Cronograma ate a prova</div>
+                  <p style={{color:C.text,fontSize:12,lineHeight:1.8,margin:0}}>
+                    Faltam <strong>{plano.diasAteProva} dias</strong> ({plano.semanasAteProva} semanas). Com <strong>{horas}h/dia</strong>, voce tem <strong>{plano.horasTotaisDisponiveis}h</strong> de estudo disponiveis. Para cobrir os <strong>{plano.totalTopicos} topicos</strong> a tempo, mantenha um ritmo de <strong>{plano.ritmo} topicos por semana</strong>. Priorize as disciplinas no topo da lista e reserve os ultimos dias para revisao e simulados.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
