@@ -86,11 +86,20 @@ function gerarNotificacoes(){
   if (feed && Array.isArray(feed.concursos)){
     // area escolhida pelo usuario em Configuracoes; se nao configurou, mostra todas
     const areaSel = (cfgConc && cfgConc.area) ? cfgConc.area : null;
-    const configurou = !!areaSel;
+    const areasCustom = (cfgConc && Array.isArray(cfgConc.areasCustom)) ? cfgConc.areasCustom : [];
+    const configurou = !!areaSel || areasCustom.length > 0;
+    const casaCustom = (c) => {
+      if (areasCustom.length === 0) return false;
+      const txt = ((c.orgao||"") + " " + (c.cargo||"") + " " + (c.obs||"")).toLowerCase();
+      return areasCustom.some(termo => {
+        const palavras = termo.toLowerCase().split(/\s+/).filter(p => p.length >= 3);
+        return palavras.length > 0 && palavras.some(p => txt.includes(p));
+      });
+    };
     const STATUS_LABEL = { inscricoes_abertas:"Inscricoes abertas", edital_iminente:"Edital iminente", previsto:"Previsto", detectado:"Detectado — confira a fonte", encerrado:"Encerrado" };
     const STATUS_COR = { inscricoes_abertas:C.green, edital_iminente:C.orange, previsto:C.blue, detectado:C.purple, encerrado:C.muted };
     const relevantes = feed.concursos.filter(c =>
-      c.status !== "encerrado" && (!configurou || c.area === areaSel)
+      c.status !== "encerrado" && (!configurou || (areaSel && c.area === areaSel) || casaCustom(c))
     );
     relevantes.forEach(c => {
       const lbl = STATUS_LABEL[c.status] || "Concurso";

@@ -99,6 +99,19 @@ function carregarCfg(){ try{ const r=localStorage.getItem(K_CFG); return r?JSON.
 export default function ConfigConcursos({ onClose }) {
   const _sv = carregarCfg() || {};
   const [area, setArea] = useState(_sv.area || null);
+  const [areasCustom, setAreasCustom] = useState(Array.isArray(_sv.areasCustom) ? _sv.areasCustom : []);
+  const [novaArea, setNovaArea] = useState("");
+  const addAreaCustom = () => {
+    const nome = (novaArea || "").trim();
+    if (!nome) return;
+    if (nome.length < 2 || nome.length > 40) return;
+    const existe = areasCustom.some(a => a.toLowerCase() === nome.toLowerCase());
+    const ehPadrao = AREAS.some(a => a.n.toLowerCase() === nome.toLowerCase());
+    if (existe || ehPadrao) { setNovaArea(""); return; }
+    setAreasCustom([...areasCustom, nome]);
+    setNovaArea("");
+  };
+  const removeAreaCustom = (nome) => setAreasCustom(areasCustom.filter(a => a !== nome));
   const [escol, setEscol] = useState(_sv.escol || null);
   const [esfera, setEsfera] = useState(_sv.esfera || null);
   const [uf, setUf] = useState(_sv.uf || "");
@@ -113,7 +126,8 @@ export default function ConfigConcursos({ onClose }) {
     const escolNome = escol ? (ESCOLARIDADE.find(x=>x.id===escol)||{}).n : null;
     const cfg = {
       area, escol, esfera, uf, cidade, horasDia,
-      areas: areaNome ? [areaNome] : [],
+      areasCustom,
+      areas: [...(areaNome ? [areaNome] : []), ...areasCustom],
       atualizadoEm: new Date().toISOString(),
     };
     try { localStorage.setItem(K_CFG, JSON.stringify(cfg)); } catch(e) {}
@@ -205,6 +219,30 @@ export default function ConfigConcursos({ onClose }) {
               <Chip key={a.id} ativo={area===a.id} onClick={()=>setArea(area===a.id?null:a.id)}>{a.n}</Chip>
             ))}
           </div>
+          {/* Areas personalizadas pelo usuario */}
+          {areasCustom.length>0 && (
+            <div style={{display:"flex",flexWrap:"wrap",gap:7,marginTop:9}}>
+              {areasCustom.map(nome=>(
+                <span key={nome} style={{display:"inline-flex",alignItems:"center",gap:6,background:C.gold+"22",border:`1px solid ${C.gold}`,color:C.goldL,borderRadius:16,padding:"5px 8px 5px 12px",fontSize:12,fontWeight:600}}>
+                  {nome}
+                  <button onClick={()=>removeAreaCustom(nome)} title="Remover" style={{background:"transparent",border:"none",color:C.goldL,cursor:"pointer",fontSize:14,lineHeight:1,padding:"0 2px"}}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          {/* Campo de inclusao manual */}
+          <div style={{display:"flex",gap:7,marginTop:10}}>
+            <input
+              value={novaArea}
+              onChange={e=>setNovaArea(e.target.value)}
+              onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); addAreaCustom(); } }}
+              placeholder="Adicionar area/cargo (ex: Procurador, Diplomata)"
+              maxLength={40}
+              style={{flex:1,background:C.card2,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"9px 12px",fontSize:13}}
+            />
+            <button onClick={addAreaCustom} style={{background:C.gold,color:"#000",border:"none",borderRadius:8,padding:"0 16px",cursor:"pointer",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}}>+ Adicionar</button>
+          </div>
+          <div style={{fontSize:11,color:C.muted,marginTop:6}}>As areas personalizadas tambem entram nos alertas do sino, filtrando o feed pelas palavras digitadas.</div>
         </Secao>
 
         {/* ESCOLARIDADE */}

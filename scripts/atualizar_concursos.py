@@ -37,12 +37,18 @@ AREAS = {
     "tribunais":     {"q": "concurso tribunal analista tecnico judiciario TJ TRT TRF", "kw": ["tribunal","judiciario","tj ","trt","trf","tre "]},
     "controle":      {"q": "concurso tribunal de contas auditor controle TCU TCE", "kw": ["tribunal de contas","tcu","tce","controle externo","cgu"]},
     "bancos":        {"q": "concurso banco do brasil caixa BNB escriturario", "kw": ["banco do brasil","caixa","escriturario","bnb","banco central"]},
-    "policial":      {"q": "concurso policia civil militar penal delegado", "kw": ["policia","delegado","penal","policial","perito"]},
-    "legislativo":   {"q": "concurso camara assembleia legislativa analista", "kw": ["camara","assembleia","legislativ","senado"]},
-    "administrativa":{"q": "concurso analista administrativo tecnico", "kw": ["administrativ","tecnico administrativo"]},
+    "policial":      {"q": "concurso policia civil militar penal delegado", "kw": ["policia","delegado","penal","policial","perito","bombeiro"]},
+    "magistratura":  {"q": "concurso magistratura juiz tribunal de justica", "kw": ["magistratura","juiz","juiza","desembargador"]},
+    "saude":         {"q": "concurso saude enfermeiro medico tecnico enfermagem", "kw": ["enfermeir","medico","saude","hospital","tecnico de enfermagem"]},
+    "conselhos":     {"q": "concurso conselho regional CRM CRC CREA OAB", "kw": ["conselho regional","crm","crc","crea","coren","conselho federal"]},
+    "agencias":      {"q": "concurso agencia reguladora ANS ANEEL ANATEL ANVISA", "kw": ["agencia reguladora","ans","aneel","anatel","anvisa","ana ","antt"]},
+    "legislativo":   {"q": "concurso camara assembleia legislativa senado analista", "kw": ["camara","assembleia","legislativ","senado","camara dos deputados"]},
+    "administrativa":{"q": "concurso analista administrativo tecnico ministerio", "kw": ["administrativ","tecnico administrativo","ministerio","prefeitura"]},
 }
-# Quais areas o robo varre por padrao (as de maior procura; extensivel)
-AREAS_ROBO = ["fiscal", "tribunais", "controle", "bancos"]
+# Areas que o robo varre por padrao. As personalizadas do usuario (sufixo extras)
+# sao tratadas no cliente, que filtra por palavras-chave proprias.
+AREAS_ROBO = ["fiscal", "tribunais", "controle", "bancos", "policial",
+              "magistratura", "saude", "conselhos", "agencias", "legislativo", "administrativa"]
 
 MAX_POR_FONTE = 5     # candidatos por fonte
 MAX_AUTO = 40         # teto de itens auto-detectados no feed
