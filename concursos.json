@@ -136,12 +136,116 @@
       "uf": "PA",
       "fonte": "https://blog.grancursosonline.com.br/concursos-tribunais/",
       "obs": "Comissao organizadora definida; edital pode sair em 2026."
+    },
+    {
+      "id": "src:tavily:6f62e7d6af",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "[PDF] edital-concurso-sefaz-ce-2026-estrategia-concursos.pdf",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://dhg1h5j42swfq.cloudfront.net/2026/04/27102204/edital-concurso-sefaz-ce-2026-estrategia-concursos.pdf",
+      "obs": "1 GOVERNO DO ESTADO DO CEARÁ SECRETARIA DA FAZENDA DO ESTADO CONCURSO PÚBLICO PARA O PROVIMENTO DE VAGAS E FORMAÇÃO DE CADASTRO DE RESERVA EDITAL Nº 01/2026 DE ABERTURA DE INSCRIÇÕ [...]"
+    },
+    {
+      "id": "src:tavily:ce4e7be1cf",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos Fiscais: Vagas e editais previstos para 2026!",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://blog.grancursosonline.com.br/concursos-fiscais",
+      "obs": "Acesso ilimitado a toda preparação para o Exame da Ordem, até você passar! * Concurso  Carreira  Estado  Professor  Banca. * PM CE - Polícia Militar do Estado do Ceará. # Concursos [...]"
+    },
+    {
+      "id": "src:tavily:5d27eac38a",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Diário Oficial do Estado de São Paulo",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://doe.sp.gov.br/executivo/secretaria-da-fazenda-e-planejamento/edital-n-06-2026-de-09-de-fevereiro-de-2026-2026020913262161623523",
+      "obs": "CONCURSO PÚBLICO PARA PROVIMENTO DE CARGOS DE AUDITOR FISCAL DA RECEITA ESTADUAL. EDITAL Nº 06/2026 – CONVOCAÇÃO PARA AS PROVAS. A SECRETARIA [...]"
+    },
+    {
+      "id": "src:tavily:cc13049588",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concursos fiscais e controle: quais editais podem sair em maio de 2026? - Blog Magistrar Educacional",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://magistrarcursos.com.br/blog/concursos-fiscais-controle-editais-maio-2026",
+      "obs": "Início › Notícias › Concursos fiscais e controle: quais editais podem sair em maio de 2026? # Concursos fiscais e controle: quais editais podem sair em maio de 2026? SEFAZ DF e ISS [...]"
+    },
+    {
+      "id": "src:tavily:f0a309ace3",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Concurso Sefaz DF 2026: Cebraspe é a banca! 265 vagas!",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.estrategiaconcursos.com.br/blog/concurso-sefaz-df",
+      "obs": "Concurso Sefaz DF 2026: edital terá 265 vagas com vencimentos iniciais de mais de R$ 30 mil! Acesse e saiba tudo aqui! [...]"
+    },
+    {
+      "id": "src:tavily:5fdd89e077",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "Governo de Mato Grosso publica edital do concurso para Fiscal de ...",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www5.sefaz.mt.gov.br/en/w/governo-de-mato-grosso-publica-edital-do-concurso-para-fiscal-de-tributos-estaduais-com-30-vagas",
+      "obs": "As inscrições serão abertas no dia 5 de janeiro de 2026 e deverão ser realizadas, exclusivamente, pelo site da Fundação Carlos Chagas (FCC), [...]"
+    },
+    {
+      "id": "src:tavily:03caf112c0",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "sefaz rn 25 auditor - Cebraspe | O melhor em avaliação de pessoas",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.cebraspe.org.br/concursos/SEFAZ_RN_25_AUDITOR",
+      "obs": "Vagas. 50 · Remuneração de até. R$ 13.283,64 · Período de inscrições. De 26/12/2025 até 16/01/2026 às 18:00, horário oficial de Brasília/DF [...]"
+    },
+    {
+      "id": "src:tavily:71e1cacdac",
+      "orgao": "Busca web (Tavily)",
+      "cargo": "SEFAZ DF: Edital para Auditor Fiscal iminente! Contrato Publicado.",
+      "area": "fiscal",
+      "banca": "a definir",
+      "vagas": "verificar na fonte",
+      "status": "detectado",
+      "uf": "",
+      "data": "2026-05-30",
+      "fonte": "https://www.youtube.com/watch?v=wZPWQLYtxG0",
+      "obs": "... SEFAZ DF Concurso para Auditor Fiscal da SEFAZ DF tem movimentação e edital iminente. - Banca: Cebraspe - Vagas: 115 + 150 CR - Requisito [...]"
     }
   ],
   "ultimaVerificacao": "2026-05-30",
   "diagnostico": {
     "ultimaColeta": "2026-05-30",
-    "totalDetectado": 0,
+    "totalDetectado": 8,
     "fontes": {
       "QD-DOM": {
         "ok": true,
@@ -208,6 +312,11 @@
         "ok": false,
         "hits": 0,
         "erro": "HTTP 403: forbidden This project does not have the access to Custom Search JSON API."
+      },
+      "Tavily": {
+        "ok": true,
+        "hits": 8,
+        "erro": null
       }
     }
   }
