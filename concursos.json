@@ -150,9 +150,9 @@
         "erro": null
       },
       "DOU": {
-        "ok": false,
+        "ok": true,
         "hits": 0,
-        "erro": "HTTP Error 502: Bad Gateway"
+        "erro": null
       },
       "DOE-CE": {
         "ok": true,
@@ -207,7 +207,7 @@
       "Google": {
         "ok": false,
         "hits": 0,
-        "erro": "sem GOOGLE_API_KEY/GOOGLE_CX (desativado)"
+        "erro": "HTTP Error 403: Forbidden"
       }
     }
   }
