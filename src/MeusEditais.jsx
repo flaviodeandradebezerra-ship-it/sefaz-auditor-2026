@@ -174,6 +174,7 @@ function EstudoEdital({ ed, onVoltar }) {
   const [horas, setHoras] = useState(3);
   const [dataProva, setDataProva] = useState(ed.prova || "");
   const [topAberto, setTopAberto] = useState(null);
+  const [showIAHelp, setShowIAHelp] = useState(false);
 
   const disc = ed.disciplinas || [];
   const plano = gerarPlanoInteligente(disc, horas, dataProva);
@@ -386,7 +387,21 @@ function EstudoEdital({ ed, onVoltar }) {
       {/* BANCO DE QUESTOES */}
       {tab==="banco" && (
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <p style={{color:C.muted,fontSize:12,marginBottom:4}}>Resolva questoes por disciplina, filtradas pela banca {ed.banca}:</p>
+          {/* Gerar questoes com IA (traga sua propria IA) */}
+          <div style={{background:`linear-gradient(135deg, ${C.purple}1e, ${C.card})`,border:`1px solid ${C.purple}55`,borderRadius:10,padding:14,marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:22}}>🤖</span>
+                <div>
+                  <div style={{fontWeight:700,color:C.text,fontSize:14}}>Gerar questoes com IA</div>
+                  <div style={{fontSize:11,color:C.muted}}>Use sua propria IA para criar questoes ineditas dos topicos deste edital</div>
+                </div>
+              </div>
+              <button onClick={()=>setShowIAHelp(true)} title="Como integrar sua IA"
+                style={{flexShrink:0,width:34,height:34,borderRadius:"50%",border:`2px solid ${C.purple}`,background:C.purple+"22",color:C.purple,cursor:"pointer",fontSize:18,fontWeight:800,lineHeight:1,animation:"sefazPulse 2s infinite"}}>?</button>
+            </div>
+          </div>
+          <p style={{color:C.muted,fontSize:12,marginBottom:4}}>Ou resolva questoes por disciplina, filtradas pela banca {ed.banca}:</p>
           {disc.map((d,i)=>(
             <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px"}}>
               <div style={{fontWeight:700,color:C.text,fontSize:13,marginBottom:4}}>{d.nome}</div>
@@ -442,11 +457,58 @@ function EstudoEdital({ ed, onVoltar }) {
           <SrcLinks termo={"simulado "+(ed.cargo||"")+" todas as disciplinas"}/>
         </div>
       )}
+
+      {/* MODAL: passo a passo para integrar IAs */}
+      {showIAHelp && (
+        <div onClick={()=>setShowIAHelp(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,border:`1px solid ${C.purple}55`,borderRadius:14,padding:20,maxWidth:560,width:"100%",margin:"20px 0"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <h3 style={{color:C.goldL,margin:0,fontSize:17}}>🤖 Como gerar questoes com sua IA</h3>
+              <button onClick={()=>setShowIAHelp(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:22,cursor:"pointer",lineHeight:1}}>×</button>
+            </div>
+            <p style={{color:C.text,fontSize:12.5,lineHeight:1.7,marginTop:0}}>
+              Voce pode usar qualquer assistente de IA para criar questoes ineditas dos topicos deste edital. E simples e funciona com a sua conta (nenhum dado seu passa por nos):
+            </p>
+            <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",margin:"10px 0"}}>
+              <div style={{fontWeight:700,color:C.gold,fontSize:13,marginBottom:6}}>Passo a passo (vale para todas):</div>
+              <ol style={{color:C.text,fontSize:12.5,lineHeight:1.8,margin:0,paddingLeft:18}}>
+                <li>Abra a IA de sua preferencia (lista abaixo).</li>
+                <li>Copie um topico da aba <strong>Disciplinas</strong> deste edital.</li>
+                <li>Cole o prompt sugerido e envie.</li>
+                <li>Resolva as questoes e confira os comentarios.</li>
+              </ol>
+            </div>
+            <div style={{background:C.purple+"15",border:`1px solid ${C.purple}44`,borderRadius:10,padding:"10px 12px",margin:"10px 0"}}>
+              <div style={{fontSize:11,color:C.purple,fontWeight:700,marginBottom:4}}>PROMPT SUGERIDO (copie e cole):</div>
+              <div style={{fontSize:12,color:C.text,fontStyle:"italic",lineHeight:1.6}}>
+                "Aja como banca {ed.banca}. Crie 5 questoes de multipla escolha ineditas sobre [TOPICO], no estilo do concurso {ed.cargo||"que estou estudando"}. Inclua gabarito e comentario explicativo de cada alternativa."
+              </div>
+            </div>
+            <div style={{fontWeight:700,color:C.gold,fontSize:13,margin:"14px 0 8px"}}>Onde acessar cada IA:</div>
+            {[
+              ["ChatGPT (OpenAI)","chat.openai.com","Gratuito com conta Google/e-mail. O modelo gratuito ja gera questoes muito bem."],
+              ["Claude (Anthropic)","claude.ai","Gratuito com conta. Excelente para questoes comentadas e juridicas."],
+              ["Gemini (Google)","gemini.google.com","Gratuito com conta Google. Bom para volumes maiores."],
+              ["Manus","manus.im","Agente de IA; util para tarefas mais longas e estruturadas."],
+              ["Copilot (Microsoft)","copilot.microsoft.com","Gratuito; baseado nos modelos da OpenAI, integrado ao Edge/Windows."],
+            ].map(([nome,url,obs])=>(
+              <div key={nome} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:8,padding:"9px 12px",marginBottom:7}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,color:C.text,fontSize:13}}>{nome}</span>
+                  <a href={"https://"+url} target="_blank" rel="noopener noreferrer" style={{color:C.purple,fontSize:12,fontWeight:700,textDecoration:"none"}}>{url} ↗</a>
+                </div>
+                <div style={{fontSize:11,color:C.muted,marginTop:3}}>{obs}</div>
+              </div>
+            ))}
+            <p style={{fontSize:11,color:C.muted,lineHeight:1.6,marginTop:12,marginBottom:0}}>
+              Dica: cole tambem o texto do topico junto ao prompt para questoes mais fieis. Em breve, voce podera cadastrar sua chave de API para gerar questoes direto aqui dentro.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-// ============ COMPONENTE PRINCIPAL ============
 export default function MeusEditais({ onClose }) {
   const [lista, setLista] = useState([]);
   const [modo, setModo] = useState("lista"); // lista | add | estudo
