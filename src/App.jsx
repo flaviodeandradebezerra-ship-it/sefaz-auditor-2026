@@ -10,18 +10,25 @@ import Anotacoes from "./Anotacoes.jsx";
 import MetodoBanca from "./MetodoBanca.jsx";
 import Desempenho from "./Desempenho.jsx";
 
-class ErrorBoundary extends Component {
+export class ErrorBoundary extends Component {
   constructor(props){ super(props); this.state={erro:null}; }
   static getDerivedStateFromError(error){ return {erro:error}; }
-  componentDidCatch(error, info){ console.error("FlashcardsApp erro:", error, info); }
+  componentDidCatch(error, info){ console.error("Erro capturado:", error, info); }
   render(){
     if(this.state.erro){
+      const secao = this.props.secao || "esta secao";
       return (
-        <div style={{padding:20,maxWidth:680,margin:"0 auto"}}>
-          <div style={{background:"#1a0808",border:"2px solid #ef4444",borderRadius:10,padding:20}}>
-            <h3 style={{color:"#ef4444",margin:"0 0 10px"}}>Erro ao carregar Resumos & Flashcards</h3>
-            <pre style={{color:"#fca5a5",fontSize:11,whiteSpace:"pre-wrap",wordBreak:"break-word",margin:0}}>{String(this.state.erro && this.state.erro.message || this.state.erro)}</pre>
-            <pre style={{color:"#94a3b8",fontSize:10,whiteSpace:"pre-wrap",wordBreak:"break-word",marginTop:10}}>{String(this.state.erro && this.state.erro.stack || "").slice(0,500)}</pre>
+        <div style={{padding:20,maxWidth:560,margin:"40px auto"}}>
+          <div style={{background:"#0f1829",border:"1px solid #1b2c44",borderRadius:14,padding:28,textAlign:"center"}}>
+            <div style={{fontSize:40,marginBottom:8}}>🛠️</div>
+            <h3 style={{color:"#f0d080",margin:"0 0 8px",fontSize:18}}>Ops, algo nao carregou em {secao}</h3>
+            <p style={{color:"#94a3b8",fontSize:13,lineHeight:1.7,margin:"0 0 18px"}}>
+              Tivemos um problema temporario ao exibir esta parte. Seus dados de estudo estao salvos e seguros. Tente recarregar.
+            </p>
+            <button onClick={()=>{ try{this.setState({erro:null});}catch(e){} window.location.reload(); }}
+              style={{background:"#c8a951",color:"#000",border:"none",borderRadius:8,padding:"11px 22px",cursor:"pointer",fontWeight:700,fontSize:14}}>
+              ↻ Recarregar
+            </button>
           </div>
         </div>
       );
@@ -643,15 +650,15 @@ export default function App() {
           <button onClick={()=>setShowNotas(true)} title="Anotacoes" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📝 Anotacoes</button>
           <button onClick={()=>setShowMetodo(true)} title="Metodo por Banca" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>🎓 Metodo</button>
           <button onClick={()=>setShowDesempenho(true)} title="Painel de Desempenho" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📊 Desempenho</button>
-          <Notificacoes />
+          <ErrorBoundary secao="Notificacoes"><Notificacoes /></ErrorBoundary>
           <button onClick={()=>setShowConfig(true)} title="Configurar busca de concursos" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:15,fontWeight:700}}>⚙️</button>
         </div>
       </div>
-      {showConfig && <ConfigConcursos onClose={()=>setShowConfig(false)} />}
-      {showEditais && <MeusEditais onClose={()=>setShowEditais(false)} />}
-      {showNotas && <Anotacoes onClose={()=>setShowNotas(false)} />}
-      {showMetodo && <MetodoBanca onClose={()=>setShowMetodo(false)} />}
-      {showDesempenho && <Desempenho onClose={()=>setShowDesempenho(false)} />}
+      {showConfig && <ErrorBoundary secao="Configuracoes"><ConfigConcursos onClose={()=>setShowConfig(false)} /></ErrorBoundary>}
+      {showEditais && <ErrorBoundary secao="Meus Editais"><MeusEditais onClose={()=>setShowEditais(false)} /></ErrorBoundary>}
+      {showNotas && <ErrorBoundary secao="Anotacoes"><Anotacoes onClose={()=>setShowNotas(false)} /></ErrorBoundary>}
+      {showMetodo && <ErrorBoundary secao="Metodo por Banca"><MetodoBanca onClose={()=>setShowMetodo(false)} /></ErrorBoundary>}
+      {showDesempenho && <ErrorBoundary secao="Painel de Desempenho"><Desempenho onClose={()=>setShowDesempenho(false)} /></ErrorBoundary>}
     </div>
   );
 
@@ -1267,14 +1274,14 @@ export default function App() {
         {/* TAB 6 – RESUMOS & FLASHCARDS */}
         {tab===6&&(
           <div>
-            <ErrorBoundary><FlashcardsApp /></ErrorBoundary>
+            <ErrorBoundary secao="Simulados"><FlashcardsApp /></ErrorBoundary>
           </div>
         )}
 
         {/* TAB 7 – LEIS, FONTES E JURISPRUDÊNCIAS */}
         {tab===7&&(
           <div>
-            <ErrorBoundary><LeisFontes /></ErrorBoundary>
+            <ErrorBoundary secao="Leis e Fontes"><LeisFontes /></ErrorBoundary>
           </div>
         )}
 
