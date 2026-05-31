@@ -295,14 +295,56 @@ export default function Desempenho({ onClose }) {
     }
   };
 
+  // ---- BACKUP: exportar/importar todos os dados de estudo ----
+  const CHAVES_BACKUP = [
+    "sefaz_desempenho_v1","sefaz_diario_v1","sefaz_erradas_v2","sefaz_stats_disc_v1",
+    "sefaz_simulados_v1","sefaz_metas_v1","sefaz_meus_editais_v1","sefaz_anotacoes_v1",
+    "sefaz_config_concursos_v1","sefaz_notif_log_v1","sefaz_notif_vistas_v1",
+  ];
+  const exportarBackup = () => {
+    try {
+      const dados = {};
+      CHAVES_BACKUP.forEach(k => { const v = localStorage.getItem(k); if (v != null) dados[k] = v; });
+      const pacote = { app: "sefaz-ce-estudos", versao: 1, exportadoEm: new Date().toISOString(), dados };
+      const blob = new Blob([JSON.stringify(pacote, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "backup-estudos-" + hoje() + ".json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch (e) { alert("Nao foi possivel exportar o backup neste dispositivo."); }
+  };
+  const importarBackup = (ev) => {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const pacote = JSON.parse(String(reader.result));
+        if (!pacote || pacote.app !== "sefaz-ce-estudos" || !pacote.dados) {
+          alert("Arquivo de backup invalido."); return;
+        }
+        if (!window.confirm("Importar este backup vai substituir seus dados atuais de estudo neste aparelho. Continuar?")) return;
+        Object.entries(pacote.dados).forEach(([k, v]) => { try { localStorage.setItem(k, v); } catch (e) {} });
+        alert("Backup restaurado com sucesso! O app sera recarregado.");
+        window.location.reload();
+      } catch (e) { alert("Nao foi possivel ler o arquivo de backup."); }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:1000,overflowY:"auto",padding:"20px 12px"}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{maxWidth:700,margin:"0 auto",background:C.bg,border:`1px solid ${C.gold}44`,borderRadius:14,padding:"20px 18px"}}>
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <h2 style={{color:C.gold,margin:0,fontSize:17}}>📊 Desempenho</h2>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <button onClick={exportarRelatorio} title="Exportar relatorio" style={{background:C.gold+"18",border:`1px solid ${C.gold}`,color:C.gold,borderRadius:6,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>Exportar relatorio</button>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <button onClick={exportarRelatorio} title="Exportar relatorio" style={{background:C.gold+"18",border:`1px solid ${C.gold}`,color:C.gold,borderRadius:6,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>Relatorio</button>
+            <button onClick={exportarBackup} title="Exportar backup dos seus dados" style={{background:C.green+"18",border:`1px solid ${C.green}`,color:C.green,borderRadius:6,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>⬇ Backup</button>
+            <label title="Restaurar backup" style={{background:C.blue+"18",border:`1px solid ${C.blue}`,color:"#93c5fd",borderRadius:6,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>
+              ⬆ Restaurar
+              <input type="file" accept="application/json,.json" onChange={importarBackup} style={{display:"none"}}/>
+            </label>
             <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:6,width:32,height:32,cursor:"pointer",fontSize:16}}>✕</button>
           </div>
         </div>
