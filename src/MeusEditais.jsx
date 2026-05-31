@@ -168,6 +168,113 @@ function linksEstudo(termo, banca) {
   ];
 }
 
+// ============ FLASHCARDS AUTOMATICOS (gerados dos topicos do edital) ============
+function SrcLinksBase({ termo, banca }) {
+  return (
+    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8}}>
+      {linksEstudo(termo, banca).map((l,i)=>(
+        <a key={i} href={l.u} target="_blank" rel="noopener noreferrer"
+          style={{background:l.cor+"22",border:`1px solid ${l.cor}`,color:l.cor,borderRadius:6,padding:"4px 9px",fontSize:11,fontWeight:700,textDecoration:"none"}}>
+          {l.n} ↗
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function gerarBaralho(disc) {
+  const cards = [];
+  for (const d of disc) {
+    for (const tp of d.topicos) {
+      const t = String(tp).trim();
+      if (t.length < 4) continue;
+      cards.push({ disciplina: d.nome, topico: t });
+    }
+  }
+  return cards;
+}
+
+function FlashcardsEdital({ disc, banca }) {
+  const baralho = gerarBaralho(disc);
+  const [filtro, setFiltro] = useState("Todas");
+  const [idx, setIdx] = useState(0);
+  const [virada, setVirada] = useState(false);
+
+  const disciplinas = ["Todas", ...disc.map(d => d.nome)];
+  const cards = filtro === "Todas" ? baralho : baralho.filter(c => c.disciplina === filtro);
+  const card = cards[idx] || null;
+
+  const irPara = (n) => { setVirada(false); setIdx(n); };
+  const proximo = () => irPara((idx + 1) % cards.length);
+  const anterior = () => irPara((idx - 1 + cards.length) % cards.length);
+
+  if (baralho.length === 0) {
+    return <p style={{color:C.muted,fontSize:13}}>Nenhum topico detectado para gerar flashcards. Cole o conteudo programatico do edital.</p>;
+  }
+
+  return (
+    <div>
+      <div style={{background:`linear-gradient(135deg, ${C.blue}1e, ${C.card})`,border:`1px solid ${C.blue}55`,borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{fontWeight:700,color:C.text,fontSize:14,marginBottom:3}}>📇 Flashcards do seu edital</div>
+        <div style={{fontSize:11.5,color:C.muted,lineHeight:1.6}}>
+          {baralho.length} flashcards gerados automaticamente dos topicos detectados. Tente lembrar o conteudo, depois vire a carta para conferir e aprofundar.
+        </div>
+      </div>
+
+      {/* filtro por disciplina */}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+        {disciplinas.map(nm => (
+          <button key={nm} onClick={()=>{ setFiltro(nm); irPara(0); }}
+            style={{padding:"5px 11px",borderRadius:14,fontSize:11.5,fontWeight:700,cursor:"pointer",
+              border:`1px solid ${filtro===nm?C.blue:C.border}`,
+              background:filtro===nm?C.blue+"22":"transparent",
+              color:filtro===nm?"#93c5fd":C.muted}}>
+            {nm}{nm!=="Todas" ? "" : ` (${baralho.length})`}
+          </button>
+        ))}
+      </div>
+
+      {card && (
+        <>
+          <div onClick={()=>setVirada(v=>!v)}
+            style={{background:virada?C.card2:C.card,border:`1px solid ${virada?C.blue:C.border}`,borderRadius:14,padding:"28px 20px",minHeight:170,
+              display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",cursor:"pointer",transition:"all 0.2s"}}>
+            <div style={{fontSize:10.5,color:C.muted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:10}}>{card.disciplina}</div>
+            {!virada ? (
+              <>
+                <div style={{fontSize:16,color:C.text,fontWeight:600,lineHeight:1.5}}>O que voce sabe sobre:</div>
+                <div style={{fontSize:18,color:C.goldL,fontWeight:700,lineHeight:1.5,marginTop:8}}>{card.topico}</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:16}}>👆 toque para virar</div>
+              </>
+            ) : (
+              <>
+                <div style={{fontSize:14,color:C.text,fontWeight:600,lineHeight:1.6}}>Topico para dominar:</div>
+                <div style={{fontSize:16,color:"#93c5fd",fontWeight:700,lineHeight:1.5,marginTop:8}}>{card.topico}</div>
+                <div style={{fontSize:11.5,color:C.muted,marginTop:14,lineHeight:1.6}}>
+                  Aprofunde nas fontes abaixo ou peca a uma IA: <em>"explique {card.topico} para concurso da banca {banca}"</em>.
+                </div>
+              </>
+            )}
+          </div>
+
+          {virada && (
+            <div style={{marginTop:10}}>
+              <SrcLinksBase termo={card.disciplina + " " + card.topico} banca={banca} />
+            </div>
+          )}
+
+          {/* navegacao */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,gap:10}}>
+            <button onClick={anterior} style={{background:C.card2,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"9px 16px",cursor:"pointer",fontSize:13,fontWeight:700}}>← Anterior</button>
+            <div style={{fontSize:12,color:C.muted}}>{idx+1} / {cards.length}</div>
+            <button onClick={proximo} style={{background:C.blue+"22",border:`1px solid ${C.blue}`,color:"#93c5fd",borderRadius:8,padding:"9px 16px",cursor:"pointer",fontSize:13,fontWeight:700}}>Proximo →</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ============ VISUALIZACAO DE ESTUDO DO EDITAL ============
 function EstudoEdital({ ed, onVoltar }) {
   const [tab, setTab] = useState("visao");
@@ -438,14 +545,19 @@ function EstudoEdital({ ed, onVoltar }) {
 
       {/* FLASHCARDS */}
       {tab==="flash" && (
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <p style={{color:C.muted,fontSize:12,marginBottom:4}}>Resumos e flashcards por disciplina (abrem materiais nas fontes):</p>
-          {disc.map((d,i)=>(
-            <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px"}}>
-              <div style={{fontWeight:700,color:C.text,fontSize:13,marginBottom:4}}>📇 {d.nome}</div>
-              <SrcLinks termo={d.nome+" resumo mapa mental"}/>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <FlashcardsEdital disc={disc} banca={ed.banca} />
+          <div>
+            <p style={{color:C.muted,fontSize:12,marginBottom:8}}>Resumos e mapas mentais por disciplina (abrem materiais nas fontes):</p>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {disc.map((d,i)=>(
+                <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px"}}>
+                  <div style={{fontWeight:700,color:C.text,fontSize:13,marginBottom:4}}>📇 {d.nome}</div>
+                  <SrcLinks termo={d.nome+" resumo mapa mental"}/>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       )}
 
