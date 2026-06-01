@@ -756,7 +756,7 @@ function EstudoEdital({ ed, onVoltar }) {
 
             <button onClick={gerarIA} disabled={iaCarregando}
               style={{width:"100%",background:iaCarregando?C.muted:C.purple,color:"#fff",border:"none",borderRadius:8,padding:"12px",cursor:iaCarregando?"default":"pointer",fontWeight:700,fontSize:14}}>
-              {iaCarregando ? "Gerando questoes..." : "✨ Gerar 5 questoes"}
+              {iaCarregando ? "Gerando e revisando..." : "✨ Gerar 5 questoes (com revisao)"}
             </button>
 
             {iaErro && <div style={{background:C.red+"18",border:`1px solid ${C.red}`,color:"#fca5a5",borderRadius:8,padding:"10px 12px",fontSize:12,marginTop:12}}>{iaErro}</div>}
@@ -768,6 +768,9 @@ function EstudoEdital({ ed, onVoltar }) {
                 </div>
                 {iaQuestoes.map((q,qi)=>(
                   <div key={qi} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+                      {q.revisado && <span title="A IA revisou criticamente o proprio gabarito" style={{background:C.green+"22",border:`1px solid ${C.green}`,color:C.green,borderRadius:10,padding:"1px 8px",fontSize:10,fontWeight:700}}>✓ revisada pela IA</span>}
+                    </div>
                     <div style={{color:C.text,fontSize:13,fontWeight:600,lineHeight:1.6,marginBottom:8}}>{qi+1}. {q.enunciado}</div>
                     {(q.alternativas||[]).map((alt,ai)=>{
                       const letra = String(alt).trim().charAt(0).toUpperCase();

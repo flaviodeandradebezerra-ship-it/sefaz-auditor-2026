@@ -80,19 +80,47 @@ async function chamarGemini(chave, prompt, modelo) {
 }
 
 // Gera questoes; retorna array [{enunciado, alternativas, gabarito, comentario}]
-export async function gerarQuestoesIA({ provedor, chave }, { topico, banca, cargo, n = 5 }) {
+async function chamarIA(provedor, chave, prompt, modelo) {
+  if (provedor === "openai") return await chamarOpenAI(chave, prompt, modelo);
+  if (provedor === "anthropic") return await chamarAnthropic(chave, prompt, modelo);
+  if (provedor === "gemini") return await chamarGemini(chave, prompt, modelo);
+  throw new Error("Provedor nao suportado para geracao direta.");
+}
+
+function montarPromptRevisao(questoes) {
+  return `Voce e um revisor critico de questoes de concurso. Abaixo ha questoes em JSON.
+Para CADA questao, verifique se o gabarito esta REALMENTE correto e se o comentario procede.
+Se encontrar erro de gabarito, CORRIJA. Seja rigoroso.
+Responda APENAS um JSON valido no mesmo formato de entrada, com os campos ja corrigidos e
+um campo extra "revisado":true em cada questao. Nao adicione texto fora do JSON.
+Questoes:
+${JSON.stringify({ questoes })}`;
+}
+
+export async function gerarQuestoesIA({ provedor, chave }, { topico, banca, cargo, n = 5, revisar = true }) {
   if (!chave) throw new Error("Cadastre sua chave de API primeiro.");
   const prov = PROVEDORES.find(p => p.id === provedor) || PROVEDORES[0];
-  const prompt = montarPrompt(topico, banca, cargo, n);
-  let texto = "";
-  if (provedor === "openai") texto = await chamarOpenAI(chave, prompt, prov.modelo);
-  else if (provedor === "anthropic") texto = await chamarAnthropic(chave, prompt, prov.modelo);
-  else if (provedor === "gemini") texto = await chamarGemini(chave, prompt, prov.modelo);
-  else throw new Error("Provedor nao suportado para geracao direta.");
 
+  // 1a passada: gerar
+  const prompt = montarPrompt(topico, banca, cargo, n);
+  const texto = await chamarIA(provedor, chave, prompt, prov.modelo);
   const obj = extrairJSON(texto);
   if (!obj || !Array.isArray(obj.questoes) || obj.questoes.length === 0) {
     throw new Error("A IA respondeu em formato inesperado. Tente novamente.");
   }
-  return obj.questoes;
+  let questoes = obj.questoes;
+
+  // 2a passada: auto-revisao critica dos gabaritos (reduz erro, nao elimina)
+  if (revisar) {
+    try {
+      const textoRev = await chamarIA(provedor, chave, montarPromptRevisao(questoes), prov.modelo);
+      const objRev = extrairJSON(textoRev);
+      if (objRev && Array.isArray(objRev.questoes) && objRev.questoes.length === questoes.length) {
+        questoes = objRev.questoes.map((q, i) => ({ ...questoes[i], ...q, revisado: true }));
+      }
+    } catch (e) {
+      // se a revisao falhar, mantem as questoes originais (degrada com seguranca)
+    }
+  }
+  return questoes;
 }
