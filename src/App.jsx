@@ -10,6 +10,7 @@ import Anotacoes from "./Anotacoes.jsx";
 import MetodoBanca from "./MetodoBanca.jsx";
 import Desempenho from "./Desempenho.jsx";
 import Biblioteca from "./Biblioteca.jsx";
+import Privacidade, { BannerConsentimento } from "./Privacidade.jsx";
 
 export class ErrorBoundary extends Component {
   constructor(props){ super(props); this.state={erro:null}; }
@@ -591,6 +592,9 @@ export default function App() {
   const [showMetodo, setShowMetodo] = useState(false);
   const [showDesempenho, setShowDesempenho] = useState(false);
   const [showBiblioteca, setShowBiblioteca] = useState(false);
+  const [showPrivacidade, setShowPrivacidade] = useState(false);
+  const [consentido, setConsentido] = useState(() => { try { return localStorage.getItem("sefaz_lgpd_consent_v1") === "1"; } catch(e) { return true; } });
+  const aceitarConsent = () => { try { localStorage.setItem("sefaz_lgpd_consent_v1","1"); } catch(e){} setConsentido(true); };
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -650,6 +654,7 @@ export default function App() {
           <button onClick={iniciarSim} style={{padding:"8px 14px",borderRadius:6,border:`1px solid ${modo==="simulado"?C.gold:C.border}`,background:modo==="simulado"?C.gold+"22":"transparent",color:modo==="simulado"?C.gold:C.muted,cursor:"pointer",fontSize:12,fontWeight:700}}>🎯 Simulado</button>
           <button onClick={()=>setShowEditais(true)} title="Meus Editais" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📑 Meus Editais</button>
           <button onClick={()=>setShowBiblioteca(true)} title="Biblioteca de Conhecimento" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📚 Biblioteca</button>
+          <button onClick={()=>setShowPrivacidade(true)} title="Privacidade e seus dados" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:13,fontWeight:700}}>🔒</button>
           <button onClick={()=>setShowNotas(true)} title="Anotacoes" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📝 Anotacoes</button>
           <button onClick={()=>setShowMetodo(true)} title="Metodo por Banca" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>🎓 Metodo</button>
           <button onClick={()=>setShowDesempenho(true)} title="Painel de Desempenho" style={{padding:"8px 12px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.gold,cursor:"pointer",fontSize:12,fontWeight:700}}>📊 Desempenho</button>
@@ -663,6 +668,8 @@ export default function App() {
       {showMetodo && <ErrorBoundary secao="Metodo por Banca"><MetodoBanca onClose={()=>setShowMetodo(false)} /></ErrorBoundary>}
       {showDesempenho && <ErrorBoundary secao="Painel de Desempenho"><Desempenho onClose={()=>setShowDesempenho(false)} /></ErrorBoundary>}
       {showBiblioteca && <ErrorBoundary secao="Biblioteca de Conhecimento"><Biblioteca onClose={()=>setShowBiblioteca(false)} /></ErrorBoundary>}
+      {showPrivacidade && <ErrorBoundary secao="Privacidade"><Privacidade onClose={()=>setShowPrivacidade(false)} /></ErrorBoundary>}
+      {!consentido && <BannerConsentimento onAceitar={aceitarConsent} onVerPolitica={()=>setShowPrivacidade(true)} />}
     </div>
   );
 
