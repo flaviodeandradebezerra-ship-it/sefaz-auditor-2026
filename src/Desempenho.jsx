@@ -299,7 +299,7 @@ export default function Desempenho({ onClose }) {
   const CHAVES_BACKUP = [
     "sefaz_desempenho_v1","sefaz_diario_v1","sefaz_erradas_v2","sefaz_stats_disc_v1",
     "sefaz_simulados_v1","sefaz_metas_v1","sefaz_meus_editais_v1","sefaz_anotacoes_v1",
-    "sefaz_config_concursos_v1","sefaz_notif_log_v1","sefaz_notif_vistas_v1","sefaz_biblioteca_v1","sefaz_tipoerro_v1",
+    "sefaz_config_concursos_v1","sefaz_notif_log_v1","sefaz_notif_vistas_v1","sefaz_biblioteca_v1","sefaz_tipoerro_v1","sefaz_trilha_v1",
   ];
   const exportarBackup = () => {
     try {

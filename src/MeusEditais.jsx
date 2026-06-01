@@ -308,6 +308,22 @@ function EstudoEdital({ ed, onVoltar }) {
 
   const disc = ed.disciplinas || [];
   const plano = gerarPlanoInteligente(disc, horas, dataProva);
+
+  // Trilha de aprendizagem: progresso (disciplinas concluidas) por edital
+  const K_TRILHA = "sefaz_trilha_v1";
+  const carregarTrilha = () => { try { const r = localStorage.getItem(K_TRILHA); const o = r ? JSON.parse(r) : {}; return o[ed.id] || {}; } catch (e) { return {}; } };
+  const [trilhaFeito, setTrilhaFeito] = useState(carregarTrilha());
+  const toggleEtapa = (nome) => {
+    const novo = { ...trilhaFeito, [nome]: !trilhaFeito[nome] };
+    if (!novo[nome]) delete novo[nome];
+    setTrilhaFeito(novo);
+    try {
+      const r = localStorage.getItem(K_TRILHA);
+      const o = r ? JSON.parse(r) : {};
+      o[ed.id] = novo;
+      localStorage.setItem(K_TRILHA, JSON.stringify(o));
+    } catch (e) {}
+  };
   const totalTopicos = disc.reduce((s, d) => s + d.topicos.length, 0);
   const blocosDia = Math.max(1, Math.round(horas / 1.5));
   const semanas = Math.max(1, Math.ceil(totalTopicos / (blocosDia * 7)));
@@ -450,6 +466,57 @@ function EstudoEdital({ ed, onVoltar }) {
                   </div>
                 ))}
               </div>
+
+              {/* TRILHA DE APRENDIZAGEM */}
+              {(() => {
+                const etapas = plano.linhas;
+                const feitas = etapas.filter(e => trilhaFeito[e.nome]).length;
+                const pctTrilha = etapas.length > 0 ? Math.round((feitas / etapas.length) * 100) : 0;
+                // proxima etapa = primeira nao concluida na ordem
+                const proximaIdx = etapas.findIndex(e => !trilhaFeito[e.nome]);
+                return (
+                  <div style={{background:C.card,border:`1px solid ${C.purple}44`,borderRadius:10,padding:14,marginBottom:14}}>
+                    <div style={{fontWeight:700,color:C.purple,fontSize:13,marginBottom:4}}>🧭 Sua trilha de aprendizagem</div>
+                    <div style={{fontSize:11,color:C.muted,marginBottom:10}}>Marque cada disciplina ao concluir. A jornada segue a ordem de prioridade — uma etapa de cada vez.</div>
+
+                    {/* progresso geral */}
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                      <div style={{flex:1,height:10,background:C.card2,borderRadius:5,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:pctTrilha+"%",background:`linear-gradient(90deg,${C.purple},#c084fc)`,borderRadius:5,transition:"width 0.3s"}}/>
+                      </div>
+                      <span style={{fontSize:13,fontWeight:700,color:C.purple}}>{pctTrilha}%</span>
+                    </div>
+                    {pctTrilha===100 && <div style={{background:C.green+"18",border:`1px solid ${C.green}`,color:C.green,borderRadius:8,padding:"8px 12px",fontSize:12,fontWeight:700,marginBottom:12,textAlign:"center"}}>🎉 Trilha concluida! Foque agora em simulados e revisao.</div>}
+
+                    {/* etapas */}
+                    <div style={{position:"relative"}}>
+                      {etapas.map((e,i) => {
+                        const feito = !!trilhaFeito[e.nome];
+                        const ehProxima = i === proximaIdx;
+                        const cor = feito ? C.green : ehProxima ? C.purple : C.muted;
+                        return (
+                          <div key={e.nome} style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:i<etapas.length-1?14:0,position:"relative"}}>
+                            {/* linha conectora */}
+                            {i < etapas.length-1 && <div style={{position:"absolute",left:13,top:26,width:2,height:"100%",background:feito?C.green:C.border}}/>}
+                            {/* no */}
+                            <button onClick={()=>toggleEtapa(e.nome)} title={feito?"Marcar como nao concluida":"Marcar como concluida"}
+                              style={{flexShrink:0,width:28,height:28,borderRadius:"50%",border:`2px solid ${cor}`,background:feito?C.green:"transparent",color:feito?"#000":cor,cursor:"pointer",fontSize:13,fontWeight:700,lineHeight:1,zIndex:1,padding:0}}>
+                              {feito ? "✓" : (i+1)}
+                            </button>
+                            <div style={{flex:1,paddingTop:2}}>
+                              <div style={{fontSize:13,color:feito?C.muted:C.text,fontWeight:600,textDecoration:feito?"line-through":"none"}}>
+                                {e.nome}
+                                {ehProxima && <span style={{marginLeft:8,fontSize:10,color:C.purple,fontWeight:700,background:C.purple+"22",borderRadius:8,padding:"2px 7px"}}>VOCE ESTA AQUI</span>}
+                              </div>
+                              <div style={{fontSize:10.5,color:C.muted,marginTop:2}}>{e.topicos} topicos · ~{e.horasSemana}h/semana</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {plano.diasAteProva!=null && plano.diasAteProva>0 && (
                 <div style={{background:C.card,border:`1px solid ${C.green}44`,borderRadius:10,padding:14}}>
