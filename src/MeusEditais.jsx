@@ -67,22 +67,32 @@ function temDiscursiva(t) {
 
 // Detecta disciplinas e topicos do conteudo programatico
 function analisarConteudo(texto) {
-  const t = texto.replace(/\r/g, " ").replace(/\u00a0/g, " ");
+  // Normaliza: \r, espacos nao-quebraveis, e MULTIPLOS espacos (PDF bagunçado) viram 1
+  const t = texto.replace(/\r/g, " ").replace(/\u00a0/g, " ").replace(/[ \t]{2,}/g, " ");
   // Disciplinas ordenadas: as MAIS especificas primeiro (evita "Portugues" engolir "Lingua Portuguesa")
   const discKW = [
-    "LINGUA PORTUGUESA","REDACAO OFICIAL","RACIOCINIO LOGICO","RACIOCINIO LOGICO-MATEMATICO",
-    "NOCOES DE INFORMATICA","TECNOLOGIA DA INFORMACAO","MATEMATICA FINANCEIRA","MATEMATICA",
-    "ESTATISTICA","DIREITO CONSTITUCIONAL","DIREITO ADMINISTRATIVO","DIREITO TRIBUTARIO",
-    "DIREITO CIVIL","DIREITO PENAL","DIREITO PROCESSUAL CIVIL","DIREITO PROCESSUAL PENAL",
+    "LINGUA PORTUGUESA","LINGUA INGLESA","LINGUA ESPANHOLA","REDACAO OFICIAL","REDACAO",
+    "RACIOCINIO LOGICO-MATEMATICO","RACIOCINIO LOGICO E MATEMATICO","RACIOCINIO LOGICO","RACIOCINIO ANALITICO",
+    "NOCOES DE INFORMATICA","TECNOLOGIA DA INFORMACAO","SEGURANCA DA INFORMACAO","BANCO DE DADOS",
+    "ENGENHARIA DE SOFTWARE","REDES DE COMPUTADORES","PROGRAMACAO",
+    "MATEMATICA FINANCEIRA","MATEMATICA","ESTATISTICA",
+    "DIREITO CONSTITUCIONAL","DIREITO ADMINISTRATIVO","DIREITO TRIBUTARIO","DIREITO CIVIL",
+    "DIREITO PENAL","DIREITO PROCESSUAL CIVIL","DIREITO PROCESSUAL PENAL","DIREITO PROCESSUAL DO TRABALHO",
     "DIREITO PROCESSUAL","DIREITO DO TRABALHO","DIREITO PREVIDENCIARIO","DIREITO FINANCEIRO",
-    "DIREITO EMPRESARIAL","CONTABILIDADE PUBLICA","CONTABILIDADE GERAL","CONTABILIDADE DE CUSTOS",
-    "CONTABILIDADE AVANCADA","CONTABILIDADE","AUDITORIA GOVERNAMENTAL","AUDITORIA",
+    "DIREITO EMPRESARIAL","DIREITO AMBIENTAL","DIREITO ELEITORAL","DIREITO INTERNACIONAL",
+    "DIREITO ECONOMICO","DIREITO DO CONSUMIDOR","DIREITOS HUMANOS","DIREITO AGRARIO","DIREITO NOTARIAL",
+    "CONTABILIDADE PUBLICA","CONTABILIDADE GERAL","CONTABILIDADE DE CUSTOS","CONTABILIDADE AVANCADA",
+    "CONTABILIDADE","AUDITORIA GOVERNAMENTAL","AUDITORIA","PERICIA CONTABIL",
     "ADMINISTRACAO PUBLICA","ADMINISTRACAO FINANCEIRA E ORCAMENTARIA","ADMINISTRACAO FINANCEIRA",
-    "ADMINISTRACAO GERAL","ADMINISTRACAO","ECONOMIA","FINANCAS PUBLICAS","LEGISLACAO TRIBUTARIA",
-    "LEGISLACAO ESPECIFICA","LEGISLACAO","ATUALIDADES","ETICA NO SERVICO PUBLICO","ETICA",
-    "GESTAO DE PESSOAS","GESTAO PUBLICA","ARQUIVOLOGIA","SAUDE PUBLICA","ENFERMAGEM",
-    "FARMACOLOGIA","PORTUGUES","INFORMATICA","CONHECIMENTOS ESPECIFICOS","CONHECIMENTOS GERAIS",
-    "CONHECIMENTOS BASICOS",
+    "ADMINISTRACAO ORCAMENTARIA","ADMINISTRACAO GERAL","ADMINISTRACAO DE RECURSOS HUMANOS","ADMINISTRACAO",
+    "ECONOMIA","MICROECONOMIA","MACROECONOMIA","FINANCAS PUBLICAS","ORCAMENTO PUBLICO",
+    "LEGISLACAO TRIBUTARIA","LEGISLACAO ESPECIFICA","LEGISLACAO INSTITUCIONAL","LEGISLACAO",
+    "ATUALIDADES","ETICA NO SERVICO PUBLICO","ETICA","FILOSOFIA","SOCIOLOGIA","HISTORIA","GEOGRAFIA",
+    "GESTAO DE PESSOAS","GESTAO DE PROJETOS","GESTAO PUBLICA","GESTAO DOCUMENTAL","ARQUIVOLOGIA",
+    "BIBLIOTECONOMIA","SAUDE PUBLICA","ENFERMAGEM","MEDICINA","FARMACOLOGIA","NUTRICAO","PSICOLOGIA",
+    "PEDAGOGIA","CONTROLE EXTERNO","CONTROLE INTERNO","POLITICAS PUBLICAS",
+    "PORTUGUES","INGLES","ESPANHOL","INFORMATICA","CONHECIMENTOS ESPECIFICOS",
+    "CONHECIMENTOS GERAIS","CONHECIMENTOS BASICOS","CONHECIMENTOS COMPLEMENTARES",
   ];
   const semAcento = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
   const tn = semAcento(t);
@@ -93,10 +103,12 @@ function analisarConteudo(texto) {
   for (const kw of discKW) {
     let idx = tn.indexOf(kw);
     while (idx !== -1) {
-      // se essa posicao ja foi capturada por uma kw mais especifica, ignora
       let livre = true;
       for (let j = idx; j < idx + kw.length; j++) { if (ocupado[j]) { livre = false; break; } }
-      if (livre) {
+      // exige limite de palavra antes (evita casar no meio de outra palavra)
+      const antes = idx === 0 ? " " : tn[idx - 1];
+      const limiteOk = /[^A-Z]/.test(antes);
+      if (livre && limiteOk) {
         achados.push({ kw, idx });
         for (let j = idx; j < idx + kw.length; j++) ocupado[j] = true;
       }
@@ -108,17 +120,22 @@ function analisarConteudo(texto) {
   const disc = [];
   for (let i = 0; i < achados.length; i++) {
     const a = achados[i];
-    const prox = achados[i + 1] ? achados[i + 1].idx : Math.min(a.idx + 1400, t.length);
-    const trecho = t.slice(a.idx, prox);
+    const prox = achados[i + 1] ? achados[i + 1].idx : Math.min(a.idx + 1600, t.length);
+    let trecho = t.slice(a.idx, prox);
+    // remove o nome da disciplina do inicio (com ":" se houver e estiver perto; senao pelo tamanho da kw)
+    const idxDois = trecho.indexOf(":");
+    if (idxDois !== -1 && idxDois < 60) trecho = trecho.slice(idxDois + 1);
+    else trecho = trecho.slice(a.kw.length);
     let topicos = trecho
-      .replace(/^[^:]*:?/, "")
-      .split(/;|\.\s+\d+\.?\d*\s|\u2022|\n|\d+\.\d+|\s\d+\s/)
-      .map(s => s.replace(/^\d+[.)\s-]*/, "").trim())
-      .filter(s => s.length > 6 && s.length < 180)
-      .filter((s, idx, arr) => arr.indexOf(s) === idx) // remove duplicatas
-      .slice(0, 15);
+      .split(/;|\.\s+(?=\d)|\u2022|\u25aa|\u2023|\n|\d+\.\d+(?:\.\d+)?|\s\d+[.)]\s|\s[-–]\s+|\s[-–]?\s*[IVX]{1,4}[.)\-]\s/i)
+      .map(s => s.replace(/^[\s.)\d–-]+/, ""))            // limpa numeracao arabe/pontos no inicio
+      .map(s => s.replace(/^[IVX]{1,4}[\s.)\-]+/i, ""))    // limpa romanos SO se seguidos de separador
+      .map(s => s.replace(/\s+/g, " ").trim())            // colapsa espacos internos
+      .filter(s => s.length > 4 && s.length < 200)
+      .filter(s => /[a-zA-Z]{3,}/.test(s))                // descarta lixo (precisa palavra real)
+      .filter((s, idx, arr) => arr.indexOf(s) === idx)    // remove duplicatas
+      .slice(0, 20);
     const nome = a.kw.split(" ").map(w => w.length <= 2 ? w.toLowerCase() : w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
-    // so adiciona se achou topicos reais (descarta disciplina "fantasma" vazia)
     if (topicos.length > 0) {
       disc.push({ nome, topicos });
     }
