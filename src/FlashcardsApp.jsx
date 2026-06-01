@@ -84,6 +84,25 @@ function salvarTipoErro(o){ try{localStorage.setItem(K_TIPOERRO,JSON.stringify(o
 function registrarTipoErro(tipo){
   const o=carregarTipoErro(); o[tipo]=(o[tipo]||0)+1; salvarTipoErro(o);
 }
+
+// Formata a fonte da questao de forma rastreavel e honesta:
+// distingue questao de PROVA REAL de questao no ESTILO da banca (inedita).
+function fonteQuestao(q){
+  const ref = String(q.r||"").trim();
+  const ano = q.a || "";
+  const ehEstilo = /estilo|inedit|autoral/i.test(ref);
+  if (ehEstilo) {
+    return { texto: "Questao no estilo FCC" + (ano?(" · "+ano):""), real: false, icone: "✎" };
+  }
+  // ref tipica: "FCC/SEFAZ-CE-2023" -> banca/concurso
+  const partes = ref.split(/[\/]/);
+  const banca = partes[0] || "FCC";
+  const concurso = partes.slice(1).join("/");
+  let texto = banca;
+  if (concurso && concurso !== banca) texto += " · " + concurso;
+  if (ano && !ref.includes(String(ano))) texto += " · " + ano;
+  return { texto, real: true, icone: "📄" };
+}
 function carregarErradas(){try{const r=localStorage.getItem(K_ERRADAS);return r?JSON.parse(r):{};}catch(e){return {};}}
 function salvarErradas(o){try{localStorage.setItem(K_ERRADAS,JSON.stringify(o));}catch(e){}}
 // historico de simulados (evolucao)
@@ -278,10 +297,17 @@ function Quiz({tp, qs, onBack, banca}){
       </div>
 
       <div style={{background:C.card,border:`1px solid ${show?(sel===q.g?C.green:C.red):C.border}`,borderRadius:12,padding:20,transition:"border-color 0.3s"}}>
-        <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
           <span style={{background:"#1e3a5f",color:"#7bb3e8",padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:700}}>Q{idx+1}</span>
-          <span style={{color:C.muted,fontSize:11}}>{q.r}</span>
-          <span style={{color:C.muted,fontSize:11}}>• {q.a}</span>
+          {(() => {
+            const f = fonteQuestao(q);
+            return (
+              <span title={f.real?"Questao baseada em prova/banca real":"Questao inedita no estilo da banca"}
+                style={{display:"inline-flex",alignItems:"center",gap:4,background:f.real?"#0f2647":"#2a2440",border:`1px solid ${f.real?"#1e3a5f":"#4a3d6b"}`,color:f.real?"#7bb3e8":"#c4a9e8",padding:"2px 9px",borderRadius:12,fontSize:10.5,fontWeight:700}}>
+                {f.icone} {f.texto}
+              </span>
+            );
+          })()}
         </div>
         <p style={{fontSize:13,color:C.text,lineHeight:1.85,marginBottom:16}}>{q.q}</p>
 
