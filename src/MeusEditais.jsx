@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PROVEDORES, carregarCfgIA, salvarCfgIA, gerarQuestoesIA } from "./iaQuestoes.js";
 
 const C = {
   bg:"#080e1a", card:"#0f1829", card2:"#162035",
@@ -282,6 +283,28 @@ function EstudoEdital({ ed, onVoltar }) {
   const [dataProva, setDataProva] = useState(ed.prova || "");
   const [topAberto, setTopAberto] = useState(null);
   const [showIAHelp, setShowIAHelp] = useState(false);
+  const [showIAGen, setShowIAGen] = useState(false);
+  const [iaCfg, setIaCfg] = useState(carregarCfgIA());
+  const [iaTopico, setIaTopico] = useState("");
+  const [iaCarregando, setIaCarregando] = useState(false);
+  const [iaErro, setIaErro] = useState("");
+  const [iaQuestoes, setIaQuestoes] = useState([]);
+  const [iaRespostas, setIaRespostas] = useState({});
+
+  const gerarIA = async () => {
+    setIaErro(""); setIaQuestoes([]); setIaRespostas({});
+    if (!iaCfg.chave) { setIaErro("Cadastre sua chave de API abaixo."); return; }
+    if (!iaTopico.trim()) { setIaErro("Escolha ou digite um topico."); return; }
+    setIaCarregando(true);
+    try {
+      const qs = await gerarQuestoesIA(iaCfg, { topico: iaTopico.trim(), banca: ed.banca, cargo: ed.cargo, n: 5 });
+      setIaQuestoes(qs);
+    } catch (e) {
+      setIaErro(String(e.message || e));
+    } finally {
+      setIaCarregando(false);
+    }
+  };
 
   const disc = ed.disciplinas || [];
   const plano = gerarPlanoInteligente(disc, horas, dataProva);
@@ -504,6 +527,8 @@ function EstudoEdital({ ed, onVoltar }) {
                   <div style={{fontSize:11,color:C.muted}}>Use sua propria IA para criar questoes ineditas dos topicos deste edital</div>
                 </div>
               </div>
+              <button onClick={()=>setShowIAGen(true)}
+                style={{flexShrink:0,background:C.purple,color:"#fff",border:"none",borderRadius:8,padding:"9px 14px",cursor:"pointer",fontSize:12.5,fontWeight:700}}>Gerar agora</button>
               <button onClick={()=>setShowIAHelp(true)} title="Como integrar sua IA"
                 style={{flexShrink:0,width:34,height:34,borderRadius:"50%",border:`2px solid ${C.purple}`,background:C.purple+"22",color:C.purple,cursor:"pointer",fontSize:18,fontWeight:800,lineHeight:1,animation:"sefazPulse 2s infinite"}}>?</button>
             </div>
@@ -613,8 +638,94 @@ function EstudoEdital({ ed, onVoltar }) {
               </div>
             ))}
             <p style={{fontSize:11,color:C.muted,lineHeight:1.6,marginTop:12,marginBottom:0}}>
-              Dica: cole tambem o texto do topico junto ao prompt para questoes mais fieis. Em breve, voce podera cadastrar sua chave de API para gerar questoes direto aqui dentro.
+              Dica: cole tambem o texto do topico junto ao prompt para questoes mais fieis. Voce tambem pode clicar em "Gerar agora" para criar questoes direto aqui, cadastrando sua chave de API.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: gerar questoes por IA direto no app (BYOK) */}
+      {showIAGen && (
+        <div onClick={()=>setShowIAGen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,border:`1px solid ${C.purple}66`,borderRadius:14,padding:20,maxWidth:600,width:"100%",margin:"20px 0"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <h3 style={{color:C.goldL,margin:0,fontSize:16}}>🤖 Gerar questoes com IA</h3>
+              <button onClick={()=>setShowIAGen(false)} style={{background:"transparent",border:"none",color:C.muted,fontSize:22,cursor:"pointer"}}>×</button>
+            </div>
+
+            {/* Config da IA */}
+            <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:12,marginBottom:12}}>
+              <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:6}}>1. Sua IA</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+                {PROVEDORES.map(p=>(
+                  <button key={p.id} onClick={()=>{ const c={...iaCfg,provedor:p.id}; setIaCfg(c); salvarCfgIA(c); }}
+                    style={{padding:"5px 10px",borderRadius:12,fontSize:11.5,fontWeight:700,cursor:"pointer",
+                      border:`1px solid ${iaCfg.provedor===p.id?C.purple:C.border}`,
+                      background:iaCfg.provedor===p.id?C.purple+"22":"transparent",
+                      color:iaCfg.provedor===p.id?C.purple:C.muted}}>{p.nome}</button>
+                ))}
+              </div>
+              <input type="password" value={iaCfg.chave} onChange={e=>{ const c={...iaCfg,chave:e.target.value}; setIaCfg(c); salvarCfgIA(c); }}
+                placeholder="Cole aqui sua chave de API"
+                style={{width:"100%",background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"9px 12px",fontSize:13,boxSizing:"border-box"}}/>
+              <div style={{fontSize:10.5,color:C.muted,marginTop:6,lineHeight:1.5}}>
+                Pegue sua chave em <strong>{(PROVEDORES.find(p=>p.id===iaCfg.provedor)||{}).doc}</strong>. A chave fica salva so no seu aparelho — nunca passa pelos nossos servidores.
+              </div>
+            </div>
+
+            {/* Topico */}
+            <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:6}}>2. Topico (escolha ou digite)</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+              {disc.slice(0,8).map((d,i)=>(
+                <button key={i} onClick={()=>setIaTopico(d.nome)}
+                  style={{padding:"5px 10px",borderRadius:12,fontSize:11,fontWeight:600,cursor:"pointer",
+                    border:`1px solid ${iaTopico===d.nome?C.gold:C.border}`,
+                    background:iaTopico===d.nome?C.gold+"22":"transparent",
+                    color:iaTopico===d.nome?C.gold:C.muted}}>{d.nome}</button>
+              ))}
+            </div>
+            <input value={iaTopico} onChange={e=>setIaTopico(e.target.value)} placeholder="Ex: Obrigacao tributaria"
+              style={{width:"100%",background:C.card2,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"9px 12px",fontSize:13,boxSizing:"border-box",marginBottom:12}}/>
+
+            <button onClick={gerarIA} disabled={iaCarregando}
+              style={{width:"100%",background:iaCarregando?C.muted:C.purple,color:"#fff",border:"none",borderRadius:8,padding:"12px",cursor:iaCarregando?"default":"pointer",fontWeight:700,fontSize:14}}>
+              {iaCarregando ? "Gerando questoes..." : "✨ Gerar 5 questoes"}
+            </button>
+
+            {iaErro && <div style={{background:C.red+"18",border:`1px solid ${C.red}`,color:"#fca5a5",borderRadius:8,padding:"10px 12px",fontSize:12,marginTop:12}}>{iaErro}</div>}
+
+            {iaQuestoes.length>0 && (
+              <div style={{marginTop:14}}>
+                <div style={{background:C.orange+"15",border:`1px solid ${C.orange}55`,borderRadius:8,padding:"8px 12px",fontSize:11,color:C.orange,marginBottom:12,lineHeight:1.5}}>
+                  ⚠️ Questoes geradas por IA podem conter erros. Confira sempre o gabarito com a legislacao/fonte oficial.
+                </div>
+                {iaQuestoes.map((q,qi)=>(
+                  <div key={qi} style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:10}}>
+                    <div style={{color:C.text,fontSize:13,fontWeight:600,lineHeight:1.6,marginBottom:8}}>{qi+1}. {q.enunciado}</div>
+                    {(q.alternativas||[]).map((alt,ai)=>{
+                      const letra = String(alt).trim().charAt(0).toUpperCase();
+                      const escolhida = iaRespostas[qi];
+                      const respondido = escolhida != null;
+                      const correta = letra === String(q.gabarito).trim().toUpperCase();
+                      let cor = C.border, bg = "transparent";
+                      if (respondido && correta) { cor=C.green; bg=C.green+"18"; }
+                      else if (respondido && letra===escolhida && !correta) { cor=C.red; bg=C.red+"18"; }
+                      return (
+                        <button key={ai} onClick={()=>setIaRespostas({...iaRespostas,[qi]:letra})}
+                          style={{display:"block",width:"100%",textAlign:"left",background:bg,border:`1px solid ${cor}`,color:C.text,borderRadius:6,padding:"8px 10px",fontSize:12.5,cursor:"pointer",marginBottom:5}}>
+                          {alt}
+                        </button>
+                      );
+                    })}
+                    {iaRespostas[qi] != null && (
+                      <div style={{marginTop:8,padding:"8px 10px",background:C.card,borderRadius:6,fontSize:12,color:C.text,lineHeight:1.6}}>
+                        <strong style={{color:C.green}}>Gabarito: {q.gabarito}.</strong> {q.comentario}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
