@@ -299,7 +299,7 @@ export default function Desempenho({ onClose }) {
   const CHAVES_BACKUP = [
     "sefaz_desempenho_v1","sefaz_diario_v1","sefaz_erradas_v2","sefaz_stats_disc_v1",
     "sefaz_simulados_v1","sefaz_metas_v1","sefaz_meus_editais_v1","sefaz_anotacoes_v1",
-    "sefaz_config_concursos_v1","sefaz_notif_log_v1","sefaz_notif_vistas_v1","sefaz_biblioteca_v1",
+    "sefaz_config_concursos_v1","sefaz_notif_log_v1","sefaz_notif_vistas_v1","sefaz_biblioteca_v1","sefaz_tipoerro_v1",
   ];
   const exportarBackup = () => {
     try {
@@ -355,6 +355,7 @@ export default function Desempenho({ onClose }) {
           <Btn id="rev">Revisoes de Hoje {revisoesHoje.length>0?`(${revisoesHoje.length})`:""}</Btn>
           <Btn id="diario">Diario & Pomodoro</Btn>
           <Btn id="stats">Acertos por Disciplina</Btn>
+          <Btn id="erros">Padrao de Erros</Btn>
           <Btn id="metas">Metas & Aprovacao</Btn>
         </div>
 
@@ -554,6 +555,49 @@ export default function Desempenho({ onClose }) {
                       );
                     })}
                   </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        {aba==="erros" && (() => {
+          const TE = [
+            {id:"naosabia",  n:"Nao sabia o conteudo", icone:"📕", cor:"#ef4444", dica:"Foque em teoria e revisao desses temas — e lacuna de conteudo."},
+            {id:"interpret", n:"Interpretei mal",       icone:"🔍", cor:"#f59e0b", dica:"Treine leitura atenta do enunciado e do que a questao pede."},
+            {id:"pegadinha", n:"Cai na pegadinha",      icone:"🎣", cor:"#a855f7", dica:"Atencao a 'exceto', 'incorreto', trocas sutis de palavras."},
+            {id:"distraido", n:"Erro bobo/distracao",   icone:"💨", cor:"#3b82f6", dica:"Releia antes de confirmar; va com calma nas primeiras."},
+            {id:"chute",     n:"Chutei",                icone:"🎲", cor:"#64748b", dica:"Marque para revisar; chute indica conteudo nao dominado."},
+          ];
+          const dados = carregar("sefaz_tipoerro_v1", {});
+          const total = Object.values(dados).reduce((s,v)=>s+(v||0),0);
+          const linhas = TE.map(t => ({...t, qtd: dados[t.id]||0}))
+                            .filter(x => x.qtd > 0).sort((a,b)=>b.qtd-a.qtd);
+          return (
+            <div>
+              <div style={{background:C.card,border:`1px solid ${C.gold}33`,borderRadius:10,padding:14,marginBottom:14}}>
+                <div style={{fontSize:13,color:C.text,fontWeight:700,marginBottom:4}}>🧠 Por que voce erra</div>
+                <div style={{fontSize:11.5,color:C.muted,lineHeight:1.6}}>Toda vez que erra um simulado, voce classifica o motivo. Aqui aparece o seu padrao — saber a CAUSA do erro vale mais que so contar quantos errou.</div>
+              </div>
+              {total === 0 ? (
+                <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"24px 10px"}}>Ainda nao ha erros classificados. Ao errar uma questao no simulado, escolha o motivo — seu padrao aparece aqui.</div>
+              ) : (
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {linhas.map((x,i)=>{
+                    const pct = Math.round((x.qtd/total)*100);
+                    return (
+                      <div key={x.id} style={{background:C.card,border:`1px solid ${i===0?x.cor:C.border}`,borderRadius:8,padding:"11px 13px"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,gap:8}}>
+                          <span style={{fontSize:12.5,color:C.text,fontWeight:600}}>{x.icone} {x.n}{i===0?" — seu principal":""}</span>
+                          <span style={{fontSize:13,fontWeight:700,color:x.cor}}>{pct}%</span>
+                        </div>
+                        <div style={{height:8,background:C.border,borderRadius:4,overflow:"hidden",marginBottom:6}}>
+                          <div style={{height:"100%",width:`${pct}%`,background:x.cor}}/>
+                        </div>
+                        <div style={{fontSize:10.5,color:C.muted,marginBottom:4}}>{x.qtd} {x.qtd===1?"vez":"vezes"}</div>
+                        <div style={{fontSize:11,color:x.cor,lineHeight:1.5}}>💡 {x.dica}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

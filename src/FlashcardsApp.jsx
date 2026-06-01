@@ -71,6 +71,19 @@ const fmtT = s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padS
 
 // ── QUIZ ──────────────────────────────────────────────
 const K_ERRADAS="sefaz_erradas_v2";
+const K_TIPOERRO="sefaz_tipoerro_v1";
+const TIPOS_ERRO=[
+  {id:"naosabia",  n:"Nao sabia o conteudo", icone:"📕", cor:"#ef4444"},
+  {id:"interpret", n:"Interpretei mal",       icone:"🔍", cor:"#f59e0b"},
+  {id:"pegadinha", n:"Cai na pegadinha",      icone:"🎣", cor:"#a855f7"},
+  {id:"distraido", n:"Erro bobo/distracao",   icone:"💨", cor:"#3b82f6"},
+  {id:"chute",     n:"Chutei",                icone:"🎲", cor:"#64748b"},
+];
+function carregarTipoErro(){ try{const r=localStorage.getItem(K_TIPOERRO);return r?JSON.parse(r):{};}catch(e){return {};} }
+function salvarTipoErro(o){ try{localStorage.setItem(K_TIPOERRO,JSON.stringify(o));}catch(e){} }
+function registrarTipoErro(tipo){
+  const o=carregarTipoErro(); o[tipo]=(o[tipo]||0)+1; salvarTipoErro(o);
+}
 function carregarErradas(){try{const r=localStorage.getItem(K_ERRADAS);return r?JSON.parse(r):{};}catch(e){return {};}}
 function salvarErradas(o){try{localStorage.setItem(K_ERRADAS,JSON.stringify(o));}catch(e){}}
 // historico de simulados (evolucao)
@@ -107,6 +120,7 @@ function Quiz({tp, qs, onBack, banca}){
   const [show,setShow]=useState(false);
   const [ac,setAc]=useState(0);
   const [er,setEr]=useState(0);
+  const [tipoErroSel,setTipoErroSel]=useState(null);
   const [t,setT]=useState(0);
   const [fim,setFim]=useState(false);
   const ref=useRef(null);
@@ -202,6 +216,7 @@ function Quiz({tp, qs, onBack, banca}){
   };
 
   const proxima=()=>{
+    setTipoErroSel(null);
     if(idx+1>=sel_qs.length){ setFim(true); clearInterval(ref.current); }
     else{ setIdx(i=>i+1); setSel(null); setShow(false); }
   };
@@ -307,6 +322,26 @@ function Quiz({tp, qs, onBack, banca}){
               </div>
               {sel!==q.g&&<div style={{fontSize:12,color:C.text}}>Resposta correta: <strong style={{color:C.green}}>{q.g}</strong></div>}
             </div>
+            {sel!==q.g&&(
+              <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+                <div style={{fontSize:12.5,fontWeight:700,color:C.text,marginBottom:8}}>Por que voce errou? <span style={{color:C.muted,fontWeight:400}}>(ajuda a identificar seu padrao)</span></div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {TIPOS_ERRO.map(t=>(
+                    <button key={t.id} onClick={()=>{ if(tipoErroSel) return; setTipoErroSel(t.id); registrarTipoErro(t.id); }}
+                      disabled={!!tipoErroSel}
+                      style={{padding:"6px 11px",borderRadius:14,fontSize:11.5,fontWeight:700,
+                        cursor:tipoErroSel?"default":"pointer",
+                        border:`1px solid ${tipoErroSel===t.id?t.cor:C.border}`,
+                        background:tipoErroSel===t.id?t.cor+"22":"transparent",
+                        color:tipoErroSel===t.id?t.cor:(tipoErroSel?C.muted:C.text),
+                        opacity:(tipoErroSel&&tipoErroSel!==t.id)?0.4:1}}>
+                      {t.icone} {t.n}
+                    </button>
+                  ))}
+                </div>
+                {tipoErroSel&&<div style={{fontSize:11,color:C.green,marginTop:8}}>✓ Registrado. Veja seu padrao de erros no painel Desempenho.</div>}
+              </div>
+            )}
             <div style={{background:"#0f2647",border:"1px solid #1e3a5f",borderRadius:8,padding:"12px 14px",marginBottom:14}}>
               <div style={{fontWeight:700,color:"#7bb3e8",marginBottom:6,fontSize:12}}>📖 Gabarito Comentado</div>
               <p style={{margin:0,fontSize:12,color:C.text,lineHeight:1.85}}>{q.c}</p>
